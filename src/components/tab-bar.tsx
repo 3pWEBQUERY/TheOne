@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
 import { BookOpen, CircleCheckBig, LayoutDashboard, NotebookPen, Settings, ShoppingCart } from "lucide-react";
 import { ThemeToggleButton } from "./theme";
@@ -17,15 +18,61 @@ function isActive(pathname: string, href: string) {
   return href === "/" ? pathname === "/" : pathname.startsWith(href);
 }
 
+const NON_TEXT_INPUTS = ["checkbox", "radio", "button", "submit", "reset", "file", "range", "color", "image"];
+
+function isTextField(el: Element | null) {
+  if (!(el instanceof HTMLElement)) return false;
+  if (el instanceof HTMLInputElement) return !NON_TEXT_INPUTS.includes(el.type);
+  return el.matches("textarea, select, [contenteditable='true']");
+}
+
+/**
+ * iOS moves position:fixed elements up with the on-screen keyboard (and sometimes leaves
+ * them there). Hide the bar while the keyboard is open and nudge the layout afterwards.
+ */
+function useKeyboardOpen() {
+  const [open, setOpen] = useState(false);
+  useEffect(() => {
+    const vv = window.visualViewport;
+    const keyboardByViewport = () => !!vv && window.innerHeight - vv.height > 150;
+    const sync = () => setOpen(isTextField(document.activeElement) || keyboardByViewport());
+    const onFocusIn = (e: FocusEvent) => {
+      if (isTextField(e.target as Element)) setOpen(true);
+    };
+    const onFocusOut = () =>
+      setTimeout(() => {
+        sync();
+        // Forces iOS to re-anchor fixed elements after the keyboard is gone.
+        if (!isTextField(document.activeElement)) window.scrollTo(window.scrollX, window.scrollY);
+      }, 80);
+    document.addEventListener("focusin", onFocusIn);
+    document.addEventListener("focusout", onFocusOut);
+    vv?.addEventListener("resize", sync);
+    return () => {
+      document.removeEventListener("focusin", onFocusIn);
+      document.removeEventListener("focusout", onFocusOut);
+      vv?.removeEventListener("resize", sync);
+    };
+  }, []);
+  return open;
+}
+
 export function TabBar({ badges }: { badges: Partial<Record<string, number>> }) {
   const pathname = usePathname();
+  const keyboardOpen = useKeyboardOpen();
   return (
     <>
       {/* Mobile: floating glass tab bar */}
       <nav
-        className="fixed inset-x-0 z-50 flex justify-center px-3 lg:hidden"
-        style={{ bottom: "calc(var(--safe-b) + 0.5rem)" }}
+        className="fixed inset-x-0 z-50 flex justify-center px-3 transition-[transform,opacity] duration-200 lg:hidden"
+        style={{
+          bottom: "calc(var(--safe-b) + 0.5rem)",
+          transform: keyboardOpen ? "translateY(140%)" : "none",
+          opacity: keyboardOpen ? 0 : 1,
+          pointerEvents: keyboardOpen ? "none" : undefined,
+        }}
         aria-label="Hauptnavigation"
+        aria-hidden={keyboardOpen || undefined}
       >
         <div className="glass-strong flex w-full max-w-md items-stretch rounded-2xl p-1">
           {NAV.map(({ href, short, icon: Icon }) => {

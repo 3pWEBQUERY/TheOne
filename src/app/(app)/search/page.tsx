@@ -3,6 +3,7 @@ import Link from "next/link";
 import { ArrowLeft, Search, SearchX } from "lucide-react";
 import { EmptyState } from "@/components/empty-state";
 import { search } from "@/lib/queries";
+import { requireUser } from "@/lib/auth";
 import { formatDate, relativeDue } from "@/lib/dates";
 
 import { CATEGORY_MAP } from "@/lib/categories";
@@ -12,7 +13,8 @@ export const metadata: Metadata = { title: "Suche" };
 export default async function SearchPage(props: PageProps<"/search">) {
   const sp = await props.searchParams;
   const q = typeof sp.q === "string" ? sp.q.trim().slice(0, 100) : "";
-  const r = q ? await search(q) : null;
+  const user = await requireUser();
+  const r = q ? await search(user.id, q) : null;
   const total = r ? r.journal.length + r.todos.length + r.notes.length + r.shopping.length : 0;
 
   return (

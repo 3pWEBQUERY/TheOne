@@ -5,21 +5,22 @@ import { addDays, endOfDay, startOfDay, toISODate } from "./dates";
 
 const tz = () => process.env.TZ || "Europe/Berlin";
 
-export async function getTodoStats(now = new Date()) {
+export async function getTodoStats(userId: string, now = new Date()) {
   const sod = startOfDay(now);
   const eod = endOfDay(now);
   const [[openToday], [doneToday], streakRows] = await Promise.all([
     db
       .select({ value: count() })
       .from(todos)
-      .where(and(eq(todos.done, false), lte(todos.dueAt, eod))),
+      .where(and(eq(todos.userId, userId), eq(todos.done, false), lte(todos.dueAt, eod))),
     db
       .select({ value: count() })
       .from(todos)
-      .where(and(eq(todos.done, true), gte(todos.completedAt, sod))),
+      .where(and(eq(todos.userId, userId), eq(todos.done, true), gte(todos.completedAt, sod))),
     db.execute<{ d: string }>(
       sql`select distinct to_char((completed_at at time zone ${tz()})::date, 'YYYY-MM-DD') as d
-          from todos where completed_at is not null and completed_at > now() - interval '400 days'
+          from todos where user_id = ${userId} and completed_at is not null
+            and completed_at > now() - interval '400 days'
           order by d desc`,
     ),
   ]);
@@ -40,50 +41,57 @@ export async function getTodoStats(now = new Date()) {
   };
 }
 
-export async function getOpenTodoCount() {
+export async function getOpenTodoCount(userId: string) {
   const [r] = await db
     .select({ value: count() })
     .from(todos)
-    .where(and(eq(todos.done, false), lte(todos.dueAt, endOfDay())));
+    .where(and(eq(todos.userId, userId), eq(todos.done, false), lte(todos.dueAt, endOfDay())));
   return r.value;
 }
 
-export async function getActiveShoppingCount() {
+export async function getActiveShoppingCount(userId: string) {
   const [r] = await db
     .select({ value: count() })
     .from(shoppingItems)
-    .where(and(eq(shoppingItems.archived, false), eq(shoppingItems.checked, false)));
+    .where(and(eq(shoppingItems.userId, userId), eq(shoppingItems.archived, false), eq(shoppingItems.checked, false)));
   return r.value;
 }
 
-export async function getAllTodos() {
+export async function getAllTodos(userId: string) {
   const [open, done] = await Promise.all([
     db
       .select()
       .from(todos)
-      .where(eq(todos.done, false))
+      .where(and(eq(todos.userId, userId), eq(todos.done, false)))
       .orderBy(sql`${todos.dueAt} asc nulls last`, desc(todos.priority), asc(todos.createdAt)),
-    db.select().from(todos).where(eq(todos.done, true)).orderBy(desc(todos.completedAt)).limit(100),
+    db
+      .select()
+      .from(todos)
+      .where(and(eq(todos.userId, userId), eq(todos.done, true)))
+      .orderBy(desc(todos.completedAt))
+      .limit(100),
   ]);
   return { open, done };
 }
 
-export async function getJournalEntries(limit = 300) {
+export async function getJournalEntries(userId: string, limit = 300) {
   return db
     .select()
     .from(journalEntries)
+    .where(eq(journalEntries.userId, userId))
     .orderBy(desc(journalEntries.entryDate), desc(journalEntries.createdAt))
     .limit(limit);
 }
 
 /** Entries written on this calendar day in earlier years. */
-export async function getOnThisDay(now = new Date()) {
+export async function getOnThisDay(userId: string, now = new Date()) {
   const md = toISODate(now).slice(5);
   return db
     .select()
     .from(journalEntries)
     .where(
       and(
+        eq(journalEntries.userId, userId),
         sql`to_char(${journalEntries.entryDate}, 'MM-DD') = ${md}`,
         ne(journalEntries.entryDate, toISODate(now)),
       ),
@@ -92,12 +100,12 @@ export async function getOnThisDay(now = new Date()) {
     .limit(3);
 }
 
-export async function getMoodHistory(days = 14) {
+export async function getMoodHistory(userId: string, days = 14) {
   const from = toISODate(addDays(new Date(), -(days - 1)));
   const rows = await db
     .select({ d: journalEntries.entryDate, mood: sql<number>`round(avg(${journalEntries.mood}))::int` })
     .from(journalEntries)
-    .where(and(gte(journalEntries.entryDate, from), isNotNull(journalEntries.mood)))
+    .where(and(eq(journalEntries.userId, userId), gte(journalEntries.entryDate, from), isNotNull(journalEntries.mood)))
     .groupBy(journalEntries.entryDate);
   const map = new Map(rows.map((r) => [r.d, r.mood]));
   return Array.from({ length: days }, (_, i) => {
@@ -106,20 +114,24 @@ export async function getMoodHistory(days = 14) {
   });
 }
 
-export async function getNotes() {
-  return db.select().from(notes).orderBy(desc(notes.pinned), desc(notes.updatedAt));
+export async function getNotes(userId: string) {
+  return db
+    .select()
+    .from(notes)
+    .where(eq(notes.userId, userId))
+    .orderBy(desc(notes.pinned), desc(notes.updatedAt));
 }
 
-export async function getShopping() {
+export async function getShopping(userId: string) {
   const [active, history] = await Promise.all([
     db
       .select()
       .from(shoppingItems)
-      .where(eq(shoppingItems.archived, false))
+      .where(and(eq(shoppingItems.userId, userId), eq(shoppingItems.archived, false)))
       .orderBy(asc(shoppingItems.checked), asc(shoppingItems.createdAt)),
     db.execute<{ name: string; times: number; category: string }>(
       sql`select name, count(*)::int as times, mode() within group (order by category) as category
-          from shopping_items where archived = true
+          from shopping_items where archived = true and user_id = ${userId}
           group by lower(name), name order by times desc, max(created_at) desc limit 40`,
     ),
   ]);
@@ -134,57 +146,73 @@ export async function getShopping() {
   return { active, suggestions };
 }
 
-export async function getDashboard() {
+export async function getDashboard(userId: string) {
   const now = new Date();
   const [stats, upcoming, todayEntry, lastEntries, pinned, shopping] = await Promise.all([
-    getTodoStats(now),
+    getTodoStats(userId, now),
     db
       .select()
       .from(todos)
-      .where(eq(todos.done, false))
+      .where(and(eq(todos.userId, userId), eq(todos.done, false)))
       .orderBy(sql`${todos.dueAt} asc nulls last`, desc(todos.priority))
       .limit(4),
     db.query.journalEntries.findFirst({
-      where: eq(journalEntries.entryDate, toISODate(now)),
+      where: and(eq(journalEntries.userId, userId), eq(journalEntries.entryDate, toISODate(now))),
       orderBy: desc(journalEntries.createdAt),
     }),
-    getMoodHistory(7),
-    db.select().from(notes).orderBy(desc(notes.pinned), desc(notes.updatedAt)).limit(3),
+    getMoodHistory(userId, 7),
+    db
+      .select()
+      .from(notes)
+      .where(eq(notes.userId, userId))
+      .orderBy(desc(notes.pinned), desc(notes.updatedAt))
+      .limit(3),
     db
       .select()
       .from(shoppingItems)
-      .where(and(eq(shoppingItems.archived, false), eq(shoppingItems.checked, false)))
+      .where(and(eq(shoppingItems.userId, userId), eq(shoppingItems.archived, false), eq(shoppingItems.checked, false)))
       .orderBy(asc(shoppingItems.createdAt))
       .limit(50),
   ]);
   return { stats, upcoming, todayEntry, moods: lastEntries, pinned, shopping };
 }
 
-export async function search(q: string) {
+export async function search(userId: string, q: string) {
   const term = `%${q.replace(/[%_\\]/g, (m) => `\\${m}`)}%`;
   const [j, t, n, s] = await Promise.all([
     db
       .select()
       .from(journalEntries)
-      .where(or(ilike(journalEntries.title, term), ilike(journalEntries.content, term)))
+      .where(
+        and(
+          eq(journalEntries.userId, userId),
+          or(ilike(journalEntries.title, term), ilike(journalEntries.content, term)),
+        ),
+      )
       .orderBy(desc(journalEntries.entryDate))
       .limit(20),
     db
       .select()
       .from(todos)
-      .where(or(ilike(todos.title, term), ilike(todos.notes, term)))
+      .where(and(eq(todos.userId, userId), or(ilike(todos.title, term), ilike(todos.notes, term))))
       .orderBy(asc(todos.done), desc(todos.createdAt))
       .limit(20),
     db
       .select()
       .from(notes)
-      .where(or(ilike(notes.title, term), ilike(notes.content, term)))
+      .where(and(eq(notes.userId, userId), or(ilike(notes.title, term), ilike(notes.content, term))))
       .orderBy(desc(notes.updatedAt))
       .limit(20),
     db
       .select()
       .from(shoppingItems)
-      .where(and(eq(shoppingItems.archived, false), or(ilike(shoppingItems.name, term), ilike(shoppingItems.note, term))))
+      .where(
+        and(
+          eq(shoppingItems.userId, userId),
+          eq(shoppingItems.archived, false),
+          or(ilike(shoppingItems.name, term), ilike(shoppingItems.note, term)),
+        ),
+      )
       .limit(20),
   ]);
   return { journal: j, todos: t, notes: n, shopping: s };

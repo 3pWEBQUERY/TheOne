@@ -1,6 +1,6 @@
 import { randomUUID } from "node:crypto";
 import sharp, { type OutputInfo } from "sharp";
-import { isAuthenticated } from "@/lib/auth";
+import { getCurrentUser } from "@/lib/auth";
 import { putObject } from "@/lib/storage";
 import type { ImageRef } from "@/db/schema";
 
@@ -9,7 +9,8 @@ export const runtime = "nodejs";
 const MAX_BYTES = 25 * 1024 * 1024;
 
 export async function POST(request: Request) {
-  if (!(await isAuthenticated())) {
+  const user = await getCurrentUser();
+  if (!user) {
     return Response.json({ error: "Nicht angemeldet" }, { status: 401 });
   }
 
@@ -50,7 +51,7 @@ export async function POST(request: Request) {
   }
 
   const now = new Date();
-  const prefix = `uploads/${now.getUTCFullYear()}/${String(now.getUTCMonth() + 1).padStart(2, "0")}`;
+  const prefix = `uploads/${user.id}/${now.getUTCFullYear()}/${String(now.getUTCMonth() + 1).padStart(2, "0")}`;
   const id = randomUUID();
   const ref: ImageRef = {
     key: `${prefix}/${id}.webp`,

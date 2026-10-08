@@ -1,9 +1,11 @@
 import "server-only";
 import { revalidatePath } from "next/cache";
-import { requireAuth } from "@/lib/auth";
+import { requireUser } from "@/lib/auth";
 
+/** Ensures a signed-in user and returns their id. */
 export async function guard() {
-  await requireAuth();
+  const user = await requireUser();
+  return user.id;
 }
 
 export function refreshAll() {

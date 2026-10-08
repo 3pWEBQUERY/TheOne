@@ -21,7 +21,7 @@ export type TodoInput = {
 const REPEATS = ["none", "daily", "weekdays", "weekly", "monthly"] as const;
 
 export async function saveTodo(input: TodoInput) {
-  await guard();
+  const userId = await guard();
   const title = str(input.title, 500).trim();
   if (!title) return { error: "Bitte gib einen Titel ein." };
 
@@ -33,21 +33,21 @@ export async function saveTodo(input: TodoInput) {
     dueAt: optDate(input.dueAt),
     remindAt,
     repeat: (REPEATS as readonly string[]).includes(input.repeat ?? "") ? input.repeat! : "none",
-    images: sanitizeImages(input.images),
+    images: sanitizeImages(input.images, userId),
     updatedAt: new Date(),
   };
 
   if (input.id && isUuid(input.id)) {
-    const existing = await db.query.todos.findFirst({ where: eq(todos.id, input.id) });
+    const existing = await db.query.todos.findFirst({ where: and(eq(todos.id, input.id), eq(todos.userId, userId)) });
     if (!existing) return { error: "Aufgabe nicht gefunden." };
     const reminderChanged = existing.remindAt?.getTime() !== remindAt?.getTime();
     await db
       .update(todos)
       .set({ ...values, ...(reminderChanged ? { reminderSentAt: null } : {}) })
-      .where(eq(todos.id, input.id));
+      .where(and(eq(todos.id, input.id), eq(todos.userId, userId)));
     await deleteRemovedImages(existing.images, values.images);
   } else {
-    await db.insert(todos).values(values);
+    await db.insert(todos).values({ ...values, userId });
   }
   refreshAll();
   return { ok: true };
@@ -72,15 +72,17 @@ function nextOccurrence(d: Date, repeat: string) {
 }
 
 export async function toggleTodo(id: string, done: boolean) {
-  await guard();
+  const userId = await guard();
   if (!isUuid(id)) return { error: "Ungültig" };
-  const todo = await db.query.todos.findFirst({ where: eq(todos.id, id) });
+  const own = and(eq(todos.id, id), eq(todos.userId, userId));
+  const todo = await db.query.todos.findFirst({ where: own });
   if (!todo) return { error: "Aufgabe nicht gefunden." };
   const now = new Date();
 
   if (done && todo.repeat !== "none") {
     // Keep a completed copy for history/streaks, then roll the original forward.
     await db.insert(todos).values({
+      userId,
       title: todo.title,
       notes: todo.notes,
       priority: todo.priority,
@@ -100,7 +102,7 @@ export async function toggleTodo(id: string, done: boolean) {
         reminderSentAt: null,
         updatedAt: now,
       })
-      .where(eq(todos.id, id));
+      .where(own);
     refreshAll();
     return { ok: true, rolled: true };
   }
@@ -108,33 +110,39 @@ export async function toggleTodo(id: string, done: boolean) {
   await db
     .update(todos)
     .set({ done, completedAt: done ? now : null, updatedAt: now })
-    .where(eq(todos.id, id));
+    .where(own);
   refreshAll();
   return { ok: true };
 }
 
 export async function deleteTodo(id: string) {
-  await guard();
+  const userId = await guard();
   if (!isUuid(id)) return { error: "Ungültig" };
-  const [row] = await db.delete(todos).where(eq(todos.id, id)).returning();
+  const [row] = await db.delete(todos).where(and(eq(todos.id, id), eq(todos.userId, userId))).returning();
   if (row) await deleteObjects(imageKeys(row.images));
   refreshAll();
   return { ok: true };
 }
 
 export async function clearCompletedTodos() {
-  await guard();
-  const rows = await db.delete(todos).where(eq(todos.done, true)).returning({ images: todos.images });
+  const userId = await guard();
+  const rows = await db
+    .delete(todos)
+    .where(and(eq(todos.done, true), eq(todos.userId, userId)))
+    .returning({ images: todos.images });
   await deleteObjects(rows.flatMap((r) => imageKeys(r.images)));
   refreshAll();
   return { ok: true, count: rows.length };
 }
 
 export async function snoozeTodo(id: string, minutes: number) {
-  await guard();
+  const userId = await guard();
   if (!isUuid(id)) return { error: "Ungültig" };
   const at = new Date(Date.now() + Math.min(Math.max(minutes, 5), 60 * 24 * 7) * 60_000);
-  await db.update(todos).set({ remindAt: at, reminderSentAt: null, updatedAt: new Date() }).where(eq(todos.id, id));
+  await db
+    .update(todos)
+    .set({ remindAt: at, reminderSentAt: null, updatedAt: new Date() })
+    .where(and(eq(todos.id, id), eq(todos.userId, userId)));
   refreshAll();
   return { ok: true, remindAt: at.toISOString() };
 }

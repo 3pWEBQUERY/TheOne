@@ -1,13 +1,13 @@
 "use client";
 
 import { useEffect, useMemo, useState, useTransition } from "react";
-import { BookOpen, History, PenLine, Pencil, Search, Trash2 } from "lucide-react";
+import { BookOpen, Clock, History, PenLine, Pencil, Search, Trash2 } from "lucide-react";
 import { MOOD_STYLES, MoodIcon } from "../icons";
 import { EmptyState } from "../empty-state";
 import type { ImageRef, JournalEntry } from "@/db/schema";
 import { deleteJournalEntry, saveJournalEntry } from "@/lib/actions/journal";
 import { MOODS } from "@/lib/motivation";
-import { formatDate, parseLocalDate } from "@/lib/dates";
+import { formatDate, formatTime, parseLocalDate } from "@/lib/dates";
 import { ImageCover, ImageGrid, ImagePicker } from "../images";
 import { ConfirmButton, Sheet } from "../sheet";
 import { useToast } from "../toast";
@@ -200,6 +200,9 @@ function EntryCard({ entry: e, onOpen }: { entry: JournalEntry; onOpen: () => vo
           {e.mood && <span className="mt-1.5"><MoodIcon mood={e.mood} size={18} /></span>}
         </div>
         <div className="min-w-0 flex-1">
+          <p className="faint mb-0.5 flex items-center gap-1 text-xs font-medium tabular-nums">
+            <Clock size={12} /> {formatTime(e.createdAt)} Uhr
+          </p>
           {e.title && <h3 className="text-[15px] font-semibold leading-snug">{e.title}</h3>}
           <p className="muted line-clamp-3 text-sm leading-relaxed whitespace-pre-line">{e.content}</p>
         </div>
@@ -253,6 +256,11 @@ export function JournalEditor({
         }
       >
         <div className="space-y-4">
+          <p className="faint -mt-2 flex items-center gap-1.5 text-sm tabular-nums">
+            <Clock size={14} /> Erstellt um {formatTime(entry.createdAt)} Uhr
+            {entry.updatedAt.getTime() - entry.createdAt.getTime() > 60_000 &&
+              ` · bearbeitet ${formatDate(entry.updatedAt, { year: undefined })}, ${formatTime(entry.updatedAt)} Uhr`}
+          </p>
           {entry.mood && (
             <span
               className="inline-flex items-center gap-1.5 rounded-md px-2 py-1 text-sm font-medium"

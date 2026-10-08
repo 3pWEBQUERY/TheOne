@@ -1,20 +1,26 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { ArrowLeft, BookOpen, CircleCheckBig, NotebookPen, ShoppingCart } from "lucide-react";
-import { count, eq } from "drizzle-orm";
+import { and, count, eq } from "drizzle-orm";
 import { db, journalEntries, notes, shoppingItems, todos } from "@/db";
 import { getNotificationSettings } from "@/lib/settings";
 import { SettingsPanel } from "@/components/settings-panel";
+import { ProfilePanel } from "@/components/profile-panel";
+import { requireUser } from "@/lib/auth";
 
 export const metadata: Metadata = { title: "Einstellungen" };
 
 export default async function SettingsPage() {
+  const user = await requireUser();
   const [cfg, [j], [t], [n], [s]] = await Promise.all([
-    getNotificationSettings(),
-    db.select({ v: count() }).from(journalEntries),
-    db.select({ v: count() }).from(todos).where(eq(todos.done, true)),
-    db.select({ v: count() }).from(notes),
-    db.select({ v: count() }).from(shoppingItems).where(eq(shoppingItems.archived, true)),
+    getNotificationSettings(user.id),
+    db.select({ v: count() }).from(journalEntries).where(eq(journalEntries.userId, user.id)),
+    db.select({ v: count() }).from(todos).where(and(eq(todos.userId, user.id), eq(todos.done, true))),
+    db.select({ v: count() }).from(notes).where(eq(notes.userId, user.id)),
+    db
+      .select({ v: count() })
+      .from(shoppingItems)
+      .where(and(eq(shoppingItems.userId, user.id), eq(shoppingItems.archived, true))),
   ]);
 
   const stats = [
@@ -46,6 +52,8 @@ export default async function SettingsPage() {
           </div>
         ))}
       </section>
+
+      <ProfilePanel name={user.name} email={user.email} />
 
       <SettingsPanel initial={cfg} />
 

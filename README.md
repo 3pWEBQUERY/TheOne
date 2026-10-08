@@ -9,6 +9,8 @@ Eine installierbare **PWA im Liquid-Glass-Design**, optimiert fürs Handy:
 | 🗒️ **Notizen** | Farbige Glas-Karten, Anheften, Fotos, Suche, **Notiz → Aufgaben** und **Notiz → Einkaufsliste** (jede Zeile wird ein Eintrag) |
 | 🛒 **Einkauf** | Mehrere Artikel auf einmal („2x Milch, Brot, 500 g Hack“), Mengen-Erkennung, automatische Kategorien, Vorschläge aus dem Kaufverlauf, Autovervollständigung, Fotos (z.B. richtige Marke), „Einkauf abschließen“ |
 
+**Konten:** Jede Person registriert sich mit Name, E-Mail und Passwort und hat ihr eigenes Profil mit eigenen Einträgen, Bildern und Benachrichtigungen. Man bleibt angemeldet, bis man sich abmeldet (die Sitzung verlängert sich automatisch). Das erste registrierte Konto übernimmt alle Daten aus der Zeit vor den Konten.
+
 Alles arbeitet zusammen: Dashboard mit Tagesübersicht, globale Suche über alle Module,
 Badges in der Tab-Bar, Push-Benachrichtigungen (Aufgaben-Erinnerungen, Morgen-Motivation, Tagebuch-Impuls am Abend).
 
@@ -37,8 +39,8 @@ S3_BUCKET=${{theone-images.BUCKET}}
 S3_ACCESS_KEY_ID=${{theone-images.ACCESS_KEY_ID}}
 S3_SECRET_ACCESS_KEY=${{theone-images.SECRET_ACCESS_KEY}}
 S3_REGION=${{theone-images.REGION}}
-APP_PASSWORD=…        # dein Login-Passwort
 AUTH_SECRET=…         # zufälliger String (≥ 32 Zeichen)
+ALLOW_REGISTRATION=…  # optional: "false" schließt die Registrierung
 VAPID_PUBLIC_KEY=…    # npx web-push generate-vapid-keys
 VAPID_PRIVATE_KEY=…
 VAPID_SUBJECT=mailto:…

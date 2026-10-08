@@ -25,9 +25,10 @@ export type PushPayload = {
   tag?: string;
 };
 
-export async function sendPushToAll(payload: PushPayload) {
+/** Sends a notification to every device the user has subscribed. */
+export async function sendPushToUser(userId: string, payload: PushPayload) {
   if (!configure()) return { sent: 0, failed: 0 };
-  const subs = await db.select().from(pushSubscriptions);
+  const subs = await db.select().from(pushSubscriptions).where(eq(pushSubscriptions.userId, userId));
   let sent = 0;
   let failed = 0;
   await Promise.all(

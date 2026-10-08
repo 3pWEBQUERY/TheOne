@@ -1,15 +1,18 @@
-import { isAuthenticated } from "@/lib/auth";
-import { isValidKey } from "@/lib/images";
+import { getCurrentUser } from "@/lib/auth";
+import { isValidKey, keyOwner } from "@/lib/images";
 import { getObject } from "@/lib/storage";
 
 export const runtime = "nodejs";
 
 export async function GET(_request: Request, ctx: RouteContext<"/api/images/[...key]">) {
-  if (!(await isAuthenticated())) return new Response("Unauthorized", { status: 401 });
+  const user = await getCurrentUser();
+  if (!user) return new Response("Unauthorized", { status: 401 });
 
   const { key: parts } = await ctx.params;
   const key = parts.join("/");
   if (!isValidKey(key)) return new Response("Not found", { status: 404 });
+  const owner = keyOwner(key);
+  if (owner && owner !== user.id) return new Response("Not found", { status: 404 });
 
   try {
     const obj = await getObject(key);

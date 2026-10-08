@@ -1,6 +1,6 @@
 "use server";
 
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { db, journalEntries, type ImageRef } from "@/db";
 import { sanitizeImages } from "@/lib/images";
 import { deleteObjects, deleteRemovedImages, imageKeys } from "@/lib/storage";
@@ -17,9 +17,9 @@ export type JournalInput = {
 };
 
 export async function saveJournalEntry(input: JournalInput) {
-  await guard();
+  const userId = await guard();
   const content = str(input.content, 100_000);
-  const images = sanitizeImages(input.images);
+  const images = sanitizeImages(input.images, userId);
   const title = str(input.title, 300).trim();
   if (!content.trim() && !title && images.length === 0) {
     return { error: "Schreib etwas oder füge ein Bild hinzu." };
@@ -35,22 +35,26 @@ export async function saveJournalEntry(input: JournalInput) {
   };
 
   if (input.id && isUuid(input.id)) {
-    const existing = await db.query.journalEntries.findFirst({ where: eq(journalEntries.id, input.id) });
+    const own = and(eq(journalEntries.id, input.id), eq(journalEntries.userId, userId));
+    const existing = await db.query.journalEntries.findFirst({ where: own });
     if (!existing) return { error: "Eintrag nicht gefunden." };
-    await db.update(journalEntries).set(values).where(eq(journalEntries.id, input.id));
+    await db.update(journalEntries).set(values).where(own);
     await deleteRemovedImages(existing.images, images);
     refreshAll();
     return { ok: true, id: input.id };
   }
-  const [row] = await db.insert(journalEntries).values(values).returning({ id: journalEntries.id });
+  const [row] = await db.insert(journalEntries).values({ ...values, userId }).returning({ id: journalEntries.id });
   refreshAll();
   return { ok: true, id: row.id };
 }
 
 export async function deleteJournalEntry(id: string) {
-  await guard();
+  const userId = await guard();
   if (!isUuid(id)) return { error: "Ungültig" };
-  const [row] = await db.delete(journalEntries).where(eq(journalEntries.id, id)).returning();
+  const [row] = await db
+    .delete(journalEntries)
+    .where(and(eq(journalEntries.id, id), eq(journalEntries.userId, userId)))
+    .returning();
   if (row) await deleteObjects(imageKeys(row.images));
   refreshAll();
   return { ok: true };

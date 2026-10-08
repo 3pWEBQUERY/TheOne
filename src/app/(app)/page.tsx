@@ -13,7 +13,8 @@ import {
   ShoppingCart,
 } from "lucide-react";
 import { getDashboard } from "@/lib/queries";
-import { greeting, formatDate, parseLocalDate } from "@/lib/dates";
+import { requireUser } from "@/lib/auth";
+import { greeting, formatDate, formatTime, parseLocalDate } from "@/lib/dates";
 import { MOODS, progressMessage, quoteOfTheDay } from "@/lib/motivation";
 import { ProgressRing } from "@/components/progress-ring";
 import { MoodIcon, MOOD_STYLES } from "@/components/icons";
@@ -22,7 +23,9 @@ import { MiniShopping, MiniTodos, RefreshOnFocus } from "@/components/dashboard-
 
 export default async function Dashboard() {
   const now = new Date();
-  const { stats, upcoming, todayEntry, moods, pinned, shopping } = await getDashboard();
+  const user = await requireUser();
+  const { stats, upcoming, todayEntry, moods, pinned, shopping } = await getDashboard(user.id);
+  const firstName = user.name.split(" ")[0];
   const quote = quoteOfTheDay(now);
   const pct = stats.total ? stats.done / stats.total : 0;
 
@@ -32,7 +35,10 @@ export default async function Dashboard() {
       <header className="mb-6 flex items-start justify-between gap-3">
         <div>
           <p className="muted text-sm font-medium">{formatDate(now, { weekday: "long", year: undefined })}</p>
-          <h1 className="page-title">{greeting(now)}</h1>
+          <h1 className="page-title">
+            {greeting(now)}
+            {firstName ? `, ${firstName}` : ""}
+          </h1>
         </div>
         <div className="flex gap-1 lg:hidden">
           <ThemeToggleButton />
@@ -107,6 +113,7 @@ export default async function Dashboard() {
             <Link href={`/journal?open=${todayEntry.id}`} className="block">
               <p className="flex items-center gap-1.5 text-sm font-semibold">
                 <MoodIcon mood={todayEntry.mood} size={16} /> {todayEntry.title || "Heute"}
+                <span className="faint ml-auto text-xs font-medium tabular-nums">{formatTime(todayEntry.createdAt)} Uhr</span>
               </p>
               <p className="muted line-clamp-3 text-sm">{todayEntry.content}</p>
             </Link>

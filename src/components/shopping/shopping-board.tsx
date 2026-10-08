@@ -88,6 +88,7 @@ export function ShoppingBoard({
         const { name, quantity } = parseItemInput(p);
         return {
           id: `temp-${Date.now()}-${idx}`,
+          userId: null,
           name,
           quantity,
           category: detectCategory(name),

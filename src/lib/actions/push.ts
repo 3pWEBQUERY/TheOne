@@ -1,8 +1,8 @@
 "use server";
 
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { db, pushSubscriptions } from "@/db";
-import { sendPushToAll } from "@/lib/push";
+import { sendPushToUser } from "@/lib/push";
 import { setSetting, type NotificationSettings } from "@/lib/settings";
 import { guard, refreshAll, str } from "./util";
 
@@ -12,30 +12,31 @@ export type SubscriptionJSON = {
 };
 
 export async function savePushSubscription(sub: SubscriptionJSON, userAgent?: string) {
-  await guard();
+  const userId = await guard();
   const endpoint = str(sub?.endpoint, 2000);
   if (!endpoint.startsWith("https://") || !sub.keys?.p256dh || !sub.keys?.auth) {
     return { error: "Ungültiges Abo." };
   }
+  const keys = { p256dh: str(sub.keys.p256dh, 500), auth: str(sub.keys.auth, 500) };
   await db
     .insert(pushSubscriptions)
-    .values({ endpoint, p256dh: str(sub.keys.p256dh, 500), auth: str(sub.keys.auth, 500), userAgent: str(userAgent, 500) })
-    .onConflictDoUpdate({
-      target: pushSubscriptions.endpoint,
-      set: { p256dh: str(sub.keys.p256dh, 500), auth: str(sub.keys.auth, 500) },
-    });
+    .values({ userId, endpoint, ...keys, userAgent: str(userAgent, 500) })
+    // The same device may switch accounts – the subscription follows the signed-in user.
+    .onConflictDoUpdate({ target: pushSubscriptions.endpoint, set: { userId, ...keys } });
   return { ok: true };
 }
 
 export async function removePushSubscription(endpoint: string) {
-  await guard();
-  await db.delete(pushSubscriptions).where(eq(pushSubscriptions.endpoint, str(endpoint, 2000)));
+  const userId = await guard();
+  await db
+    .delete(pushSubscriptions)
+    .where(and(eq(pushSubscriptions.endpoint, str(endpoint, 2000)), eq(pushSubscriptions.userId, userId)));
   return { ok: true };
 }
 
 export async function sendTestPush() {
-  await guard();
-  const r = await sendPushToAll({
+  const userId = await guard();
+  const r = await sendPushToUser(userId, {
     title: "Benachrichtigungen aktiv",
     body: "TheOne erinnert dich ab jetzt an deine Aufgaben.",
     url: "/",
@@ -45,12 +46,12 @@ export async function sendTestPush() {
 }
 
 export async function saveNotificationSettings(cfg: NotificationSettings) {
-  await guard();
+  const userId = await guard();
   const hour = (h: unknown, d: number) => {
     const n = Math.round(Number(h));
     return n >= 0 && n <= 23 ? n : d;
   };
-  await setSetting("notifications", {
+  await setSetting(userId, "notifications", {
     dailyDigest: !!cfg.dailyDigest,
     digestHour: hour(cfg.digestHour, 8),
     journalReminder: !!cfg.journalReminder,

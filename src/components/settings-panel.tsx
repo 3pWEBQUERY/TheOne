@@ -167,6 +167,10 @@ export function SettingsPanel({ initial }: { initial: NotificationSettings }) {
           className="btn btn-ghost w-full"
           style={{ color: "var(--danger)" }}
           onClick={async () => {
+            // This device should no longer receive this account's notifications.
+            try {
+              await disablePush();
+            } catch {}
             try {
               const keys = await caches.keys();
               await Promise.all(keys.map((k) => caches.delete(k)));
