@@ -77,7 +77,7 @@ export function NotesBoard({
           <h2 className="section-title mb-2 flex items-center gap-1 px-1">
             <Pin size={13} /> Angeheftet
           </h2>
-          <div className="masonry">
+          <div className="flex flex-col gap-3">
             {pinned.map((n) => (
               <NoteCard key={n.id} note={n} onOpen={() => setEditing(n)} />
             ))}
@@ -88,7 +88,7 @@ export function NotesBoard({
       {others.length > 0 && (
         <section>
           {pinned.length > 0 && <h2 className="section-title mb-2 px-1">Weitere</h2>}
-          <div className="masonry">
+          <div className="flex flex-col gap-3">
             {others.map((n) => (
               <NoteCard key={n.id} note={n} onOpen={() => setEditing(n)} />
             ))}
@@ -114,7 +114,7 @@ function NoteCard({ note: n, onOpen }: { note: Note; onOpen: () => void }) {
       <div className="p-4">
         {n.title && <h3 className="mb-1 text-[15px] font-semibold leading-snug">{n.title}</h3>}
         {n.content && (
-          <p className="muted text-sm leading-relaxed whitespace-pre-line" style={{ display: "-webkit-box", WebkitLineClamp: 9, WebkitBoxOrient: "vertical", overflow: "hidden" }}>
+          <p className="muted text-sm leading-relaxed whitespace-pre-line" style={{ display: "-webkit-box", WebkitLineClamp: 6, WebkitBoxOrient: "vertical", overflow: "hidden" }}>
             {n.content}
           </p>
         )}

@@ -482,18 +482,6 @@ select.field {
   .animate-pop, .sheet-panel, .sheet-backdrop, .toast { animation: none; }
 }
 
-.masonry {
-  columns: 2 160px;
-  column-gap: 0.75rem;
-}
-.masonry > * {
-  break-inside: avoid;
-  margin-bottom: 0.75rem;
-}
-@media (min-width: 768px) {
-  .masonry { columns: 3 220px; }
-}
-
 :root {
   --note-sun: #eab308;
   --note-rose: #e11d48;
