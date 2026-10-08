@@ -36,7 +36,7 @@ export async function removePushSubscription(endpoint: string) {
 export async function sendTestPush() {
   await guard();
   const r = await sendPushToAll({
-    title: "🎉 Es funktioniert!",
+    title: "Benachrichtigungen aktiv",
     body: "TheOne erinnert dich ab jetzt an deine Aufgaben.",
     url: "/",
     tag: "test",

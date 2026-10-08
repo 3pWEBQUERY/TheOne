@@ -1,6 +1,7 @@
 "use client";
 
 import { createContext, useCallback, useContext, useState } from "react";
+import { CircleAlert, CircleCheck } from "lucide-react";
 
 type Toast = { id: number; text: string; tone: "default" | "success" | "error" };
 type Ctx = (text: string, tone?: Toast["tone"]) => void;
@@ -31,11 +32,10 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
         {toasts.map((t) => (
           <div
             key={t.id}
-            className="toast glass-strong glass-pill px-5 py-3 text-sm font-semibold"
-            style={{
-              color: t.tone === "error" ? "var(--danger)" : t.tone === "success" ? "var(--success)" : "var(--text)",
-            }}
+            className="toast glass-strong flex items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-medium"
           >
+            {t.tone === "success" && <CircleCheck size={16} style={{ color: "var(--success)" }} />}
+            {t.tone === "error" && <CircleAlert size={16} style={{ color: "var(--danger)" }} />}
             {t.text}
           </div>
         ))}

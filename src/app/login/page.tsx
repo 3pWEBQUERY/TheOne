@@ -13,10 +13,10 @@ export default async function LoginPage(props: PageProps<"/login">) {
 
   return (
     <main className="flex min-h-dvh items-center justify-center p-5">
-      <div className="glass-strong animate-pop w-full max-w-sm rounded-[36px] p-7 text-center">
+      <div className="glass animate-pop w-full max-w-sm rounded-2xl p-7 text-center">
         {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src="/icons/icon-192.png" alt="" className="mx-auto mb-4 h-20 w-20 rounded-[22px] shadow-xl" />
-        <h1 className="text-3xl font-extrabold tracking-tight">TheOne</h1>
+        <img src="/icons/icon-192.png" alt="" className="mx-auto mb-4 h-14 w-14 rounded-xl" />
+        <h1 className="text-2xl font-semibold tracking-tight">TheOne</h1>
         <p className="muted mt-1 mb-6 text-sm">Tagebuch · Aufgaben · Notizen · Einkauf</p>
         <LoginForm next={next} />
       </div>

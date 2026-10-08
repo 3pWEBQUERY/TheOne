@@ -1,10 +1,12 @@
 "use client";
 
 import { useEffect, useMemo, useState, useTransition } from "react";
-import { History, PenLine, Search, Trash2 } from "lucide-react";
+import { BookOpen, History, PenLine, Search, Trash2 } from "lucide-react";
+import { MOOD_STYLES, MoodIcon } from "../icons";
+import { EmptyState } from "../empty-state";
 import type { ImageRef, JournalEntry } from "@/db/schema";
 import { deleteJournalEntry, saveJournalEntry } from "@/lib/actions/journal";
-import { MOODS, moodEmoji } from "@/lib/motivation";
+import { MOODS } from "@/lib/motivation";
 import { formatDate, parseLocalDate } from "@/lib/dates";
 import { ImageCover, ImagePicker } from "../images";
 import { ConfirmButton, Sheet } from "../sheet";
@@ -62,11 +64,11 @@ export function JournalBoard({
     <div className="page">
       <header className="mb-5 flex items-end justify-between gap-3">
         <div>
-          <p className="muted text-sm font-semibold">{entries.length} {entries.length === 1 ? "Eintrag" : "Einträge"}</p>
+          <p className="muted text-sm font-medium">{entries.length} {entries.length === 1 ? "Eintrag" : "Einträge"}</p>
           <h1 className="page-title">Tagebuch</h1>
         </div>
         <button type="button" className="btn btn-primary" onClick={() => setEditing("new")}>
-          <PenLine size={18} /> Schreiben
+          <PenLine size={17} /> Neuer Eintrag
         </button>
       </header>
 
@@ -74,21 +76,28 @@ export function JournalBoard({
         <button
           type="button"
           onClick={() => setEditing("new")}
-          className="glass glass-interactive animate-pop mb-4 block w-full rounded-[28px] p-5 text-left"
+          className="glass glass-interactive animate-pop mb-4 block w-full rounded-xl p-5 text-left"
         >
-          <p className="text-lg font-bold">Wie geht es dir heute?</p>
+          <p className="text-[15px] font-semibold">Wie geht es dir heute?</p>
           <p className="muted mt-0.5 text-sm">Halte deine Gedanken fest – auch ein Satz zählt.</p>
-          <div className="mt-3 flex justify-between">
-            {MOODS.map((m) => (
-              <span key={m.value} className="text-3xl transition hover:scale-125">
-                {m.emoji}
-              </span>
-            ))}
+          <div className="mt-3 flex gap-1.5">
+            {MOODS.map((m) => {
+              const Icon = MOOD_STYLES[m.value].icon;
+              return (
+                <span
+                  key={m.value}
+                  className="grid h-10 flex-1 place-items-center rounded-lg border"
+                  style={{ borderColor: "var(--border)" }}
+                >
+                  <Icon size={20} style={{ color: MOOD_STYLES[m.value].color }} />
+                </span>
+              );
+            })}
           </div>
         </button>
       )}
 
-      <section className="glass mb-4 rounded-[28px] p-4">
+      <section className="glass mb-4 rounded-xl p-4">
         <div className="mb-3 flex items-center justify-between">
           <h2 className="section-title">Stimmung · 14 Tage</h2>
         </div>
@@ -96,13 +105,11 @@ export function JournalBoard({
           {moods.map((d) => (
             <div key={d.date} className="flex flex-1 flex-col items-center gap-1">
               <div
-                className="w-full max-w-[18px] rounded-full transition-all"
+                className="w-full max-w-[16px] rounded-[4px] transition-all"
                 style={{
-                  height: d.mood ? 10 + d.mood * 10 : 6,
-                  background: d.mood
-                    ? `linear-gradient(to top, var(--accent), var(--accent-2))`
-                    : "var(--field-border)",
-                  opacity: d.mood ? 0.4 + d.mood * 0.12 : 1,
+                  height: d.mood ? 8 + d.mood * 10 : 4,
+                  background: d.mood ? MOOD_STYLES[d.mood].color : "var(--border-strong)",
+                  opacity: d.mood ? 0.85 : 1,
                 }}
                 title={d.mood ? MOODS[d.mood - 1].label : "Kein Eintrag"}
               />
@@ -113,14 +120,14 @@ export function JournalBoard({
       </section>
 
       {onThisDay.length > 0 && (
-        <section className="glass tint-lilac mb-4 rounded-[28px] p-4">
+        <section className="glass mb-4 rounded-xl p-4">
           <h2 className="section-title mb-2 flex items-center gap-1.5">
             <History size={14} /> An diesem Tag
           </h2>
           {onThisDay.map((e) => (
             <button key={e.id} type="button" className="block w-full text-left" onClick={() => setEditing(e)}>
-              <p className="text-sm font-bold">
-                {parseLocalDate(e.entryDate).getFullYear()} {moodEmoji(e.mood)} {e.title}
+              <p className="flex items-center gap-1.5 text-sm font-semibold">
+                {parseLocalDate(e.entryDate).getFullYear()} <MoodIcon mood={e.mood} size={15} /> {e.title}
               </p>
               <p className="muted line-clamp-3 text-sm">{e.content}</p>
             </button>
@@ -129,23 +136,19 @@ export function JournalBoard({
       )}
 
       {entries.length > 3 && (
-        <div className="glass-pill glass mb-5 flex items-center gap-2 px-4">
-          <Search size={18} className="faint" />
+        <div className="glass mb-5 flex items-center gap-2 rounded-xl px-3.5">
+          <Search size={17} className="faint" />
           <input
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             placeholder="Einträge durchsuchen"
-            className="min-w-0 flex-1 bg-transparent py-3 outline-none"
+            className="min-w-0 flex-1 bg-transparent py-2.5 outline-none placeholder:text-[var(--text-3)]"
           />
         </div>
       )}
 
       {entries.length === 0 && (
-        <div className="glass rounded-[28px] p-8 text-center">
-          <div className="mb-2 text-5xl">📔</div>
-          <p className="text-lg font-bold">Dein Tagebuch ist noch leer</p>
-          <p className="muted mt-1 text-sm">Schreib deinen ersten Gedanken – mit Fotos, wenn du magst.</p>
-        </div>
+        <EmptyState icon={BookOpen} title="Dein Tagebuch ist noch leer" text="Schreib deinen ersten Gedanken – mit Fotos, wenn du magst." />
       )}
 
       <div className="space-y-6">
@@ -182,20 +185,20 @@ function EntryCard({ entry: e, onOpen }: { entry: JournalEntry; onOpen: () => vo
       tabIndex={0}
       onClick={onOpen}
       onKeyDown={(ev) => ev.key === "Enter" && onOpen()}
-      className="glass glass-interactive animate-pop cursor-pointer overflow-hidden rounded-[26px]"
+      className="glass glass-interactive animate-pop cursor-pointer overflow-hidden rounded-xl"
     >
-      {e.images.length > 0 && <ImageCover images={e.images} className="max-h-72" />}
+      {e.images.length > 0 && <ImageCover images={e.images} className="max-h-56" />}
       <div className="flex gap-4 p-4">
         <div className="flex w-11 flex-none flex-col items-center">
-          <span className="text-2xl leading-none font-extrabold">{d.getDate()}</span>
-          <span className="muted text-[11px] font-semibold uppercase">
+          <span className="text-[22px] leading-none font-semibold tabular-nums">{d.getDate()}</span>
+          <span className="faint mt-0.5 text-[11px] font-medium uppercase">
             {new Intl.DateTimeFormat("de-DE", { weekday: "short" }).format(d)}
           </span>
-          {e.mood && <span className="mt-1 text-xl">{moodEmoji(e.mood)}</span>}
+          {e.mood && <span className="mt-1.5"><MoodIcon mood={e.mood} size={18} /></span>}
         </div>
         <div className="min-w-0 flex-1">
-          {e.title && <h3 className="font-bold leading-snug">{e.title}</h3>}
-          <p className="muted line-clamp-3 text-[15px] leading-relaxed whitespace-pre-line">{e.content}</p>
+          {e.title && <h3 className="text-[15px] font-semibold leading-snug">{e.title}</h3>}
+          <p className="muted line-clamp-3 text-sm leading-relaxed whitespace-pre-line">{e.content}</p>
         </div>
       </div>
     </article>
@@ -225,7 +228,7 @@ export function JournalEditor({
       const res = await saveJournalEntry({ id: entry?.id, title, content, mood, entryDate: date, images });
       if (res.error) toast(res.error, "error");
       else {
-        toast(entry ? "Gespeichert" : "Gedanke festgehalten 💜", "success");
+        toast(entry ? "Gespeichert" : "Eintrag gespeichert", "success");
         onClose();
       }
     });
@@ -259,30 +262,35 @@ export function JournalEditor({
       }
     >
       <div className="space-y-4">
-        <div className="flex items-center justify-between gap-2">
-          {MOODS.map((m) => (
-            <button
-              key={m.value}
-              type="button"
-              onClick={() => setMood(mood === m.value ? null : m.value)}
-              className="flex flex-1 flex-col items-center gap-1 rounded-2xl py-2 transition"
-              style={{
-                background: mood === m.value ? "var(--glass-bg-strong)" : "transparent",
-                boxShadow: mood === m.value ? "inset 0 1px 0 var(--glass-edge), 0 6px 18px -8px rgba(0,0,0,.3)" : "none",
-                transform: mood === m.value ? "scale(1.08)" : "none",
-                opacity: mood && mood !== m.value ? 0.5 : 1,
-              }}
-              aria-pressed={mood === m.value}
-            >
-              <span className="text-3xl">{m.emoji}</span>
-              <span className="text-[11px] font-semibold muted">{m.label}</span>
-            </button>
-          ))}
+        <div>
+          <span className="label">Stimmung</span>
+          <div className="grid grid-cols-5 gap-1.5">
+            {MOODS.map((m) => {
+              const { icon: Icon, color } = MOOD_STYLES[m.value];
+              const active = mood === m.value;
+              return (
+                <button
+                  key={m.value}
+                  type="button"
+                  onClick={() => setMood(active ? null : m.value)}
+                  className="flex flex-col items-center gap-1 rounded-lg border py-2 transition-colors"
+                  style={{
+                    borderColor: active ? color : "var(--border-strong)",
+                    background: active ? `color-mix(in srgb, ${color} 12%, transparent)` : "var(--surface-solid)",
+                  }}
+                  aria-pressed={active}
+                >
+                  <Icon size={22} style={{ color: active || !mood ? color : "var(--text-3)" }} />
+                  <span className="muted text-[11px] font-medium">{m.label}</span>
+                </button>
+              );
+            })}
+          </div>
         </div>
 
         <div className="grid grid-cols-[1fr_auto] gap-2">
           <input
-            className="field font-semibold"
+            className="field font-medium"
             placeholder="Titel (optional)"
             value={title}
             onChange={(e) => setTitle(e.target.value)}
@@ -292,7 +300,7 @@ export function JournalEditor({
 
         <textarea
           ref={autoGrow}
-          className="field min-h-[200px] text-[17px]"
+          className="field min-h-[200px]"
           placeholder="Was geht dir durch den Kopf?"
           value={content}
           onChange={(e) => {

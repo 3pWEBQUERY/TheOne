@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, BookOpen, CircleCheckBig, NotebookPen, ShoppingCart } from "lucide-react";
 import { count, eq } from "drizzle-orm";
 import { db, journalEntries, notes, shoppingItems, todos } from "@/db";
 import { getNotificationSettings } from "@/lib/settings";
@@ -18,27 +18,31 @@ export default async function SettingsPage() {
   ]);
 
   const stats = [
-    { label: "Tagebucheinträge", value: j.v, emoji: "📔" },
-    { label: "Erledigte Aufgaben", value: t.v, emoji: "✅" },
-    { label: "Notizen", value: n.v, emoji: "🗒️" },
-    { label: "Gekaufte Artikel", value: s.v, emoji: "🛒" },
+    { label: "Tagebucheinträge", value: j.v, icon: BookOpen },
+    { label: "Erledigte Aufgaben", value: t.v, icon: CircleCheckBig },
+    { label: "Notizen", value: n.v, icon: NotebookPen },
+    { label: "Gekaufte Artikel", value: s.v, icon: ShoppingCart },
   ];
 
   return (
     <div className="page">
       <header className="mb-5 flex items-center gap-2">
-        <Link href="/" className="glass glass-pill icon-btn" aria-label="Zurück">
+        <Link href="/" className="icon-btn -ml-2 lg:hidden" aria-label="Zurück">
           <ArrowLeft size={20} />
         </Link>
         <h1 className="page-title">Einstellungen</h1>
       </header>
 
-      <section className="mb-4 grid grid-cols-2 gap-3">
+      <section className="mb-4 grid grid-cols-2 gap-3 md:grid-cols-4">
         {stats.map((x) => (
-          <div key={x.label} className="glass rounded-[24px] p-4">
-            <div className="text-2xl">{x.emoji}</div>
-            <div className="mt-1 text-2xl font-extrabold">{x.value}</div>
-            <div className="muted text-xs font-semibold">{x.label}</div>
+          <div key={x.label} className="glass flex items-center gap-3 rounded-xl p-3">
+            <span className="icon-tile">
+              <x.icon size={16} />
+            </span>
+            <div className="min-w-0">
+              <div className="text-lg leading-tight font-semibold tabular-nums">{x.value}</div>
+              <div className="muted truncate text-xs font-medium">{x.label}</div>
+            </div>
           </div>
         ))}
       </section>

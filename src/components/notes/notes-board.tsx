@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useMemo, useState, useTransition } from "react";
-import { CheckSquare, Pin, PinOff, Plus, Search, ShoppingBasket, Trash2 } from "lucide-react";
+import { Check, ListChecks, NotebookPen, Pin, PinOff, Plus, Search, ShoppingCart, Trash2 } from "lucide-react";
+import { EmptyState } from "../empty-state";
 import type { ImageRef, Note } from "@/db/schema";
 import { deleteNote, noteToShopping, noteToTodos, saveNote, toggleNotePin } from "@/lib/actions/notes";
 import { NOTE_COLORS } from "@/lib/note-colors";
@@ -45,34 +46,30 @@ export function NotesBoard({
     <div className="page">
       <header className="mb-5 flex items-end justify-between gap-3">
         <div>
-          <p className="muted text-sm font-semibold">{notes.length} {notes.length === 1 ? "Notiz" : "Notizen"}</p>
+          <p className="muted text-sm font-medium">{notes.length} {notes.length === 1 ? "Notiz" : "Notizen"}</p>
           <h1 className="page-title">Notizen</h1>
         </div>
         <button type="button" className="btn btn-primary" onClick={() => setEditing("new")}>
-          <Plus size={18} /> Neu
+          <Plus size={17} /> Neue Notiz
         </button>
       </header>
 
-      <div className="glass glass-pill mb-5 flex items-center gap-2 px-4">
-        <Search size={18} className="faint" />
+      <div className="glass mb-5 flex items-center gap-2 rounded-xl px-3.5">
+        <Search size={17} className="faint" />
         <input
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           placeholder="Notizen durchsuchen"
-          className="min-w-0 flex-1 bg-transparent py-3 outline-none"
+          className="min-w-0 flex-1 bg-transparent py-2.5 outline-none placeholder:text-[var(--text-3)]"
         />
       </div>
 
       {notes.length === 0 && (
-        <button
-          type="button"
-          onClick={() => setEditing("new")}
-          className="glass glass-interactive block w-full rounded-[28px] p-8 text-center"
-        >
-          <div className="mb-2 text-5xl">🗒️</div>
-          <p className="text-lg font-bold">Noch keine Notizen</p>
-          <p className="muted mt-1 text-sm">Ideen, Listen, Rezepte, Fotos – alles hat hier Platz.</p>
-        </button>
+        <EmptyState icon={NotebookPen} title="Noch keine Notizen" text="Ideen, Listen, Rezepte, Fotos – alles hat hier Platz.">
+          <button type="button" className="btn btn-primary" onClick={() => setEditing("new")}>
+            <Plus size={16} /> Notiz erstellen
+          </button>
+        </EmptyState>
       )}
 
       {pinned.length > 0 && (
@@ -111,13 +108,13 @@ function NoteCard({ note: n, onOpen }: { note: Note; onOpen: () => void }) {
       tabIndex={0}
       onClick={onOpen}
       onKeyDown={(e) => e.key === "Enter" && onOpen()}
-      className={`glass glass-interactive animate-pop cursor-pointer overflow-hidden rounded-[24px] ${tint(n.color)}`}
+      className={`glass glass-interactive animate-pop cursor-pointer overflow-hidden rounded-xl ${tint(n.color)}`}
     >
       {n.images.length > 0 && <ImageCover images={n.images} />}
       <div className="p-4">
-        {n.title && <h3 className="mb-1 font-bold leading-snug">{n.title}</h3>}
+        {n.title && <h3 className="mb-1 text-[15px] font-semibold leading-snug">{n.title}</h3>}
         {n.content && (
-          <p className="muted text-[14.5px] leading-relaxed whitespace-pre-line" style={{ display: "-webkit-box", WebkitLineClamp: 9, WebkitBoxOrient: "vertical", overflow: "hidden" }}>
+          <p className="muted text-sm leading-relaxed whitespace-pre-line" style={{ display: "-webkit-box", WebkitLineClamp: 9, WebkitBoxOrient: "vertical", overflow: "hidden" }}>
             {n.content}
           </p>
         )}
@@ -157,7 +154,7 @@ function NoteEditor({ note, onClose }: { note: Note | null; onClose: () => void 
         }
       }
       if (after) await after();
-      else toast(note ? "Gespeichert" : "Notiz erstellt ✨", "success");
+      else toast(note ? "Gespeichert" : "Notiz erstellt", "success");
       onClose();
     });
 
@@ -169,8 +166,8 @@ function NoteEditor({ note, onClose }: { note: Note | null; onClose: () => void 
       else
         toast(
           kind === "shopping"
-            ? `${res.count} Artikel zur Einkaufsliste hinzugefügt 🛒`
-            : `${res.count} Aufgaben erstellt ✅`,
+            ? `${res.count} Artikel zur Einkaufsliste hinzugefügt`
+            : `${res.count} Aufgaben erstellt`,
           "success",
         );
     });
@@ -220,7 +217,7 @@ function NoteEditor({ note, onClose }: { note: Note | null; onClose: () => void 
     >
       <div className="space-y-4">
         <input
-          className="field !text-lg font-bold"
+          className="field !text-[17px] font-semibold"
           placeholder="Titel"
           value={title}
           onChange={(e) => setTitle(e.target.value)}
@@ -245,14 +242,18 @@ function NoteEditor({ note, onClose }: { note: Note | null; onClose: () => void 
                 key={c.id}
                 type="button"
                 onClick={() => setColor(c.id)}
-                className={`glass h-10 w-10 rounded-full ${tint(c.id)}`}
+                className="grid h-9 w-9 place-items-center rounded-full border transition-transform active:scale-95"
                 style={{
-                  outline: color === c.id ? "3px solid var(--accent)" : "none",
-                  outlineOffset: 2,
+                  background: c.id === "default" ? "var(--surface-solid)" : `var(--note-${c.id})`,
+                  borderColor: c.id === "default" ? "var(--border-strong)" : "transparent",
+                  boxShadow: color === c.id ? "0 0 0 2px var(--surface-solid), 0 0 0 4px var(--accent)" : "none",
                 }}
                 aria-label={c.label}
+                aria-pressed={color === c.id}
                 title={c.label}
-              />
+              >
+                {color === c.id && <Check size={16} color={c.id === "default" ? "var(--text)" : "#fff"} strokeWidth={3} />}
+              </button>
             ))}
           </div>
         </div>
@@ -267,10 +268,10 @@ function NoteEditor({ note, onClose }: { note: Note | null; onClose: () => void 
             <span className="label">Umwandeln</span>
             <div className="grid grid-cols-2 gap-2">
               <button type="button" className="btn btn-ghost" onClick={() => convert("todos")} disabled={pending}>
-                <CheckSquare size={17} /> In Aufgaben
+                <ListChecks size={17} /> In Aufgaben
               </button>
               <button type="button" className="btn btn-ghost" onClick={() => convert("shopping")} disabled={pending}>
-                <ShoppingBasket size={17} /> In Einkauf
+                <ShoppingCart size={17} /> In Einkauf
               </button>
             </div>
             <p className="faint mt-1.5 text-xs">Jede Zeile der Notiz wird zu einem eigenen Eintrag.</p>

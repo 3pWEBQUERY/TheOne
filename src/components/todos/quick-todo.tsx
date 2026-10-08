@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useRef, useState, useTransition } from "react";
-import { ArrowUp, Bell, CalendarDays } from "lucide-react";
+import { ArrowUp, Bell, CalendarDays, Plus } from "lucide-react";
 import { saveTodo } from "@/lib/actions/todos";
 import { parseQuickTodo } from "@/lib/quick-parse";
 import { relativeDue } from "@/lib/dates";
@@ -31,29 +31,30 @@ export function QuickTodo() {
       if (res.error) {
         toast(res.error, "error");
         setValue(value);
-      } else toast("Aufgabe hinzugefügt ✨", "success");
+      } else toast("Aufgabe hinzugefügt", "success");
       input.current?.focus();
     });
   };
 
   return (
     <form onSubmit={submit} className="mb-4">
-      <div className="glass-strong glass-pill flex items-center gap-2 py-1.5 pr-1.5 pl-5">
+      <div className="glass flex items-center gap-2 rounded-xl py-1.5 pr-1.5 pl-3.5">
+        <Plus size={18} className="faint flex-none" />
         <input
           ref={input}
           value={value}
           onChange={(e) => setValue(e.target.value)}
-          placeholder="Neue Aufgabe… z.B. „Sport morgen 18 Uhr“"
-          className="min-w-0 flex-1 bg-transparent py-2 outline-none placeholder:text-[var(--text-3)]"
+          placeholder="Aufgabe hinzufügen – z. B. „Sport morgen 18 Uhr“"
+          className="min-w-0 flex-1 bg-transparent py-1.5 outline-none placeholder:text-[var(--text-3)]"
           enterKeyHint="send"
           aria-label="Neue Aufgabe"
         />
-        <button type="submit" className="btn btn-primary !h-10 !min-h-10 !w-10 !p-0" disabled={!value.trim() || pending} aria-label="Hinzufügen">
-          <ArrowUp size={20} />
+        <button type="submit" className="btn btn-primary !h-9 !min-h-9 !w-9 !p-0" disabled={!value.trim() || pending} aria-label="Hinzufügen">
+          <ArrowUp size={18} />
         </button>
       </div>
       {parsed?.dueAt && (
-        <p className="muted mt-2 flex items-center gap-3 px-4 text-[13px] font-medium">
+        <p className="muted mt-2 flex items-center gap-3 px-1 text-[13px] font-medium">
           <span className="flex items-center gap-1">
             <CalendarDays size={13} /> {relativeDue(parsed.dueAt)}
           </span>

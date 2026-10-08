@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useMemo, useOptimistic, useState, useTransition } from "react";
-import { Bell, ChevronDown, Flame, Plus, Repeat, Sparkles, StickyNote, Trash2 } from "lucide-react";
+import { Bell, ChevronDown, CircleCheckBig, CircleDot, Flag, Flame, Plus, Repeat, StickyNote, Trash2 } from "lucide-react";
+import { EmptyState } from "../empty-state";
 import type { Todo } from "@/db/schema";
 import { clearCompletedTodos, toggleTodo } from "@/lib/actions/todos";
 import { progressMessage, randomCheer } from "@/lib/motivation";
@@ -98,13 +99,10 @@ export function TodoBoard({
   const onToggle = (t: Todo, next: boolean, e?: React.MouseEvent) => {
     haptic(next ? [10, 30, 20] : 8);
     if (next) {
-      const x = e?.clientX ?? window.innerWidth / 2;
-      const y = e?.clientY ?? window.innerHeight / 2;
-      confetti(x, y, 40);
       const remainingToday = groups.overdue.length + groups.today.length - (t.dueAt && t.dueAt <= eod ? 1 : 0);
       if (stats.total > 0 && remainingToday === 0 && t.dueAt && t.dueAt <= eod) {
-        setTimeout(() => confetti(window.innerWidth / 2, window.innerHeight / 3, 140), 250);
-        toast("Alles für heute erledigt! 🏆", "success");
+        setTimeout(() => confetti(window.innerWidth / 2, window.innerHeight / 3, 90), 150);
+        toast("Alles für heute erledigt.", "success");
       } else {
         toast(t.repeat !== "none" ? `${randomCheer()} Nächster Termin geplant.` : randomCheer(), "success");
       }
@@ -122,31 +120,31 @@ export function TodoBoard({
     <div className="page">
       <header className="mb-5 flex items-end justify-between gap-3">
         <div>
-          <p className="muted text-sm font-semibold">{new Intl.DateTimeFormat("de-DE", { weekday: "long", day: "numeric", month: "long" }).format(now)}</p>
+          <p className="muted text-sm font-medium">{new Intl.DateTimeFormat("de-DE", { weekday: "long", day: "numeric", month: "long" }).format(now)}</p>
           <h1 className="page-title">Aufgaben</h1>
         </div>
         <button type="button" className="btn btn-primary" onClick={() => setEditing("new")}>
-          <Plus size={18} /> Neu
+          <Plus size={17} /> Neue Aufgabe
         </button>
       </header>
 
       {/* Motivation card */}
-      <section className="glass animate-pop mb-4 flex items-center gap-4 rounded-[28px] p-4">
-        <ProgressRing value={pct} size={72} stroke={8}>
-          <span className="text-sm font-extrabold">
+      <section className="glass animate-pop mb-4 flex items-center gap-4 rounded-xl p-4">
+        <ProgressRing value={pct} size={60} stroke={6}>
+          <span className="text-[13px] font-semibold tabular-nums">
             {stats.done}/{stats.total}
           </span>
         </ProgressRing>
         <div className="min-w-0 flex-1">
-          <p className="font-bold leading-snug">{progressMessage(stats.done, stats.total)}</p>
+          <p className="text-[15px] font-semibold leading-snug">{progressMessage(stats.done, stats.total)}</p>
           <div className="mt-1.5 flex flex-wrap items-center gap-2 text-sm">
-            <span className="chip !min-h-7 !px-2.5" title="Tage in Folge mit erledigten Aufgaben">
-              <Flame size={15} className="text-orange-500" />
-              <b>{stats.streak}</b> {stats.streak === 1 ? "Tag" : "Tage"} Serie
+            <span className="badge" title="Tage in Folge mit erledigten Aufgaben">
+              <Flame size={13} style={{ color: stats.streak ? "var(--warning)" : undefined }} />
+              {stats.streak} {stats.streak === 1 ? "Tag" : "Tage"} Serie
             </span>
             {stats.open > 0 && (
-              <span className="chip !min-h-7 !px-2.5">
-                <Sparkles size={15} className="text-[var(--accent)]" /> {stats.open} offen
+              <span className="badge">
+                <CircleDot size={13} /> {stats.open} offen
               </span>
             )}
           </div>
@@ -170,11 +168,7 @@ export function TodoBoard({
       </div>
 
       {optimistic.open.length === 0 && (
-        <div className="glass animate-pop rounded-[28px] p-8 text-center">
-          <div className="mb-2 text-5xl">🎉</div>
-          <p className="text-lg font-bold">Alles erledigt!</p>
-          <p className="muted mt-1 text-sm">Gönn dir eine Pause – oder plane das nächste Ziel.</p>
-        </div>
+        <EmptyState icon={CircleCheckBig} title="Alles erledigt" text="Keine offenen Aufgaben. Plane dein nächstes Ziel oder gönn dir eine Pause." />
       )}
 
       <div className="space-y-5">
@@ -185,7 +179,7 @@ export function TodoBoard({
               <h2 className="section-title mb-2 px-1" style={s.tone ? { color: s.tone } : undefined}>
                 {s.title} · {s.items.length}
               </h2>
-              <ul className="glass divide-y overflow-hidden rounded-[24px]" style={{ borderColor: "var(--divider)" }}>
+              <ul className="glass divide-soft overflow-hidden rounded-xl">
                 {s.items.map((t) => (
                   <TodoRow key={t.id} todo={t} onToggle={onToggle} onOpen={() => setEditing(t)} now={now} />
                 ))}
@@ -216,7 +210,7 @@ export function TodoBoard({
               )}
             </div>
             {showDone && (
-              <ul className="glass divide-y overflow-hidden rounded-[24px] opacity-80" style={{ borderColor: "var(--divider)" }}>
+              <ul className="glass divide-soft overflow-hidden rounded-xl">
                 {optimistic.done.map((t) => (
                   <TodoRow key={t.id} todo={t} onToggle={onToggle} onOpen={() => setEditing(t)} now={now} />
                 ))}
@@ -246,7 +240,7 @@ function TodoRow({
 }) {
   const overdue = !t.done && t.dueAt && t.dueAt < now;
   return (
-    <li className="flex items-start gap-3 px-4 py-3.5 transition active:bg-white/10" style={{ borderColor: "var(--divider)" }}>
+    <li className="flex items-start gap-3 px-4 py-3 transition-colors hover:bg-[var(--surface-hover)]">
       <button
         type="button"
         className="check mt-0.5"
@@ -256,7 +250,7 @@ function TodoRow({
         onClick={(e) => onToggle(t, !t.done, e)}
       >
         {t.done && (
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3.5" strokeLinecap="round" strokeLinejoin="round">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3.5" strokeLinecap="round" strokeLinejoin="round">
             <path d="M5 12.5l4.5 4.5L19 7.5" />
           </svg>
         )}
@@ -268,8 +262,8 @@ function TodoRow({
         onClick={onOpen}
         onKeyDown={(e) => (e.key === "Enter" || e.key === " ") && onOpen()}
       >
-        <p className={`font-semibold leading-snug ${t.done ? "faint line-through" : ""}`}>
-          {t.priority === 2 && !t.done && <span className="mr-1 text-[var(--danger)]">!</span>}
+        <p className={`text-[15px] font-medium leading-snug ${t.done ? "faint line-through" : ""}`}>
+          {t.priority === 2 && !t.done && <Flag size={13} className="mr-1.5 inline -translate-y-px" style={{ color: "var(--danger)" }} />}
           {t.title}
         </p>
         {(t.dueAt || t.remindAt || t.repeat !== "none" || t.notes) && (

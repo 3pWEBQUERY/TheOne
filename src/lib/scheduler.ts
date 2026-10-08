@@ -18,7 +18,7 @@ async function sendTodoReminders(now: Date) {
     // Mark first so a slow push never causes duplicates.
     await db.update(todos).set({ reminderSentAt: now }).where(eq(todos.id, t.id));
     await sendPushToAll({
-      title: "⏰ Erinnerung",
+      title: "Erinnerung",
       body: t.title,
       url: `/todos?open=${t.id}`,
       tag: `todo-${t.id}`,
@@ -41,8 +41,8 @@ async function sendDailyMessages(now: Date) {
       .where(and(eq(todos.done, false), lte(todos.dueAt, endOfDay(now))));
     const q = quoteOfTheDay(now);
     await sendPushToAll({
-      title: open > 0 ? `☀️ ${open} ${open === 1 ? "Aufgabe wartet" : "Aufgaben warten"} heute auf dich` : "☀️ Guten Morgen!",
-      body: open > 0 ? `„${q.text}“ – Du schaffst das!` : `„${q.text}“`,
+      title: open > 0 ? `${open} ${open === 1 ? "Aufgabe" : "Aufgaben"} für heute` : "Guten Morgen",
+      body: `„${q.text}“ – ${q.author}`,
       url: "/todos",
       tag: "daily-digest",
     });
@@ -56,7 +56,7 @@ async function sendDailyMessages(now: Date) {
       .where(eq(journalEntries.entryDate, today));
     if (entries === 0) {
       await sendPushToAll({
-        title: "📔 Wie war dein Tag?",
+        title: "Wie war dein Tag?",
         body: "Nimm dir eine Minute für deine Gedanken.",
         url: "/journal?new=1",
         tag: "journal-reminder",

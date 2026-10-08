@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import { ServiceWorker } from "@/components/service-worker";
+import { themeInitScript } from "@/components/theme";
 
 export const metadata: Metadata = {
   title: { default: "TheOne", template: "%s · TheOne" },
@@ -23,22 +24,19 @@ export const viewport: Viewport = {
   initialScale: 1,
   viewportFit: "cover",
   themeColor: [
-    { media: "(prefers-color-scheme: light)", color: "#e8ecf8" },
-    { media: "(prefers-color-scheme: dark)", color: "#07080f" },
+    { media: "(prefers-color-scheme: light)", color: "#f3f4f6" },
+    { media: "(prefers-color-scheme: dark)", color: "#0b0c0f" },
   ],
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="de">
+    <html lang="de" suppressHydrationWarning>
+      <head>
+        <script dangerouslySetInnerHTML={{ __html: themeInitScript }} />
+      </head>
       <body>
-        <div className="ambient" aria-hidden>
-          <span />
-          <span />
-          <span />
-          <span />
-          <span />
-        </div>
+        <div className="ambient" aria-hidden />
         {children}
         <ServiceWorker />
       </body>

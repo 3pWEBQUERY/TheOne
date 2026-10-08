@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { BellRing, Trash2 } from "lucide-react";
+import { ArrowDown, BellRing, Flag, Minus, Trash2 } from "lucide-react";
 import type { ImageRef, Todo } from "@/db/schema";
 import { deleteTodo, saveTodo, snoozeTodo } from "@/lib/actions/todos";
 import { ConfirmButton, Sheet } from "../sheet";
@@ -108,7 +108,7 @@ export function TodoEditor({ todo, onClose }: { todo: Todo | null; onClose: () =
       });
       if (res.error) toast(res.error, "error");
       else {
-        toast(todo ? "Gespeichert" : "Aufgabe erstellt ✨", "success");
+        toast(todo ? "Gespeichert" : "Aufgabe erstellt", "success");
         onClose();
       }
     });
@@ -118,7 +118,7 @@ export function TodoEditor({ todo, onClose }: { todo: Todo | null; onClose: () =
     startTransition(async () => {
       if (!todo) return;
       await snoozeTodo(todo.id, minutes);
-      toast("Ich erinnere dich später ⏰", "success");
+      toast("Erinnerung verschoben", "success");
       onClose();
     });
 
@@ -151,7 +151,7 @@ export function TodoEditor({ todo, onClose }: { todo: Todo | null; onClose: () =
     >
       <div className="space-y-4">
         <input
-          className="field !text-lg font-semibold"
+          className="field !text-[17px] font-medium"
           placeholder="Was möchtest du erledigen?"
           value={title}
           onChange={(e) => setTitle(e.target.value)}
@@ -162,19 +162,21 @@ export function TodoEditor({ todo, onClose }: { todo: Todo | null; onClose: () =
         <div>
           <span className="label">Priorität</span>
           <div className="flex gap-2">
-            {[
-              [0, "Niedrig", "🌿"],
-              [1, "Normal", "⭐️"],
-              [2, "Wichtig", "🔥"],
-            ].map(([v, label, emoji]) => (
+            {(
+              [
+                [0, "Niedrig", ArrowDown],
+                [1, "Normal", Minus],
+                [2, "Wichtig", Flag],
+              ] as const
+            ).map(([v, label, Icon]) => (
               <button
                 key={v}
                 type="button"
                 className="chip flex-1 justify-center"
                 data-active={priority === v}
-                onClick={() => setPriority(v as number)}
+                onClick={() => setPriority(v)}
               >
-                {emoji} {label}
+                <Icon size={14} style={v === 2 ? { color: "var(--danger)" } : undefined} /> {label}
               </button>
             ))}
           </div>
@@ -237,12 +239,12 @@ export function TodoEditor({ todo, onClose }: { todo: Todo | null; onClose: () =
         {needsPush && (
           <button
             type="button"
-            className="glass flex w-full items-center gap-3 rounded-2xl p-3 text-left text-sm"
+            className="flex w-full items-center gap-3 rounded-lg border p-3 text-left text-sm" style={{ borderColor: "var(--border-strong)", background: "var(--accent-soft)" }}
             onClick={async () => {
               const r = await enablePush(vapidPublicKey);
               if (r.ok) {
                 setNeedsPush(false);
-                toast("Benachrichtigungen aktiviert 🔔", "success");
+                toast("Benachrichtigungen aktiviert", "success");
               } else toast(r.error ?? "Fehler", "error");
             }}
           >

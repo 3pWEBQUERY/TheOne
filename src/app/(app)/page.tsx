@@ -1,9 +1,23 @@
 import Link from "next/link";
-import { BookHeart, CheckCircle2, ChevronRight, Flame, PenLine, Plus, Search, Settings, ShoppingBasket, StickyNote } from "lucide-react";
+import {
+  BookOpen,
+  ChevronRight,
+  CircleCheckBig,
+  Flame,
+  ListTodo,
+  NotebookPen,
+  PenLine,
+  Plus,
+  Search,
+  Settings,
+  ShoppingCart,
+} from "lucide-react";
 import { getDashboard } from "@/lib/queries";
 import { greeting, formatDate, parseLocalDate } from "@/lib/dates";
-import { MOODS, moodEmoji, progressMessage, quoteOfTheDay } from "@/lib/motivation";
+import { MOODS, progressMessage, quoteOfTheDay } from "@/lib/motivation";
 import { ProgressRing } from "@/components/progress-ring";
+import { MoodIcon, MOOD_STYLES } from "@/components/icons";
+import { ThemeToggleButton } from "@/components/theme";
 import { MiniShopping, MiniTodos, RefreshOnFocus } from "@/components/dashboard-widgets";
 
 export default async function Dashboard() {
@@ -15,145 +29,152 @@ export default async function Dashboard() {
   return (
     <div className="page">
       <RefreshOnFocus />
-      <header className="mb-5 flex items-start justify-between gap-3">
+      <header className="mb-6 flex items-start justify-between gap-3">
         <div>
-          <p className="muted text-sm font-semibold">{formatDate(now, { weekday: "long", year: undefined })}</p>
-          <h1 className="page-title">{greeting(now)} 👋</h1>
+          <p className="muted text-sm font-medium">{formatDate(now, { weekday: "long", year: undefined })}</p>
+          <h1 className="page-title">{greeting(now)}</h1>
         </div>
-        <Link href="/settings" className="glass glass-pill icon-btn flex-none" aria-label="Einstellungen">
-          <Settings size={20} />
-        </Link>
+        <div className="flex gap-1 lg:hidden">
+          <ThemeToggleButton />
+          <Link href="/settings" className="icon-btn" aria-label="Einstellungen">
+            <Settings size={18} />
+          </Link>
+        </div>
       </header>
 
-      <form action="/search" className="glass glass-pill mb-4 flex items-center gap-2 px-4">
-        <Search size={18} className="faint" />
+      <form action="/search" className="glass mb-5 flex items-center gap-2 rounded-xl px-3.5">
+        <Search size={17} className="faint" />
         <input
           name="q"
-          placeholder="Alles durchsuchen…"
-          className="min-w-0 flex-1 bg-transparent py-3 outline-none"
+          placeholder="Alles durchsuchen"
+          className="min-w-0 flex-1 bg-transparent py-2.5 outline-none placeholder:text-[var(--text-3)]"
           enterKeyHint="search"
           aria-label="Suche"
         />
       </form>
 
-      {/* Motivation hero */}
-      <section className="glass animate-pop mb-4 overflow-hidden rounded-[30px] p-5">
-        <div className="flex items-center gap-4">
-          <ProgressRing value={pct} size={84} stroke={9}>
+      {/* Today */}
+      <section className="glass animate-pop mb-5 rounded-xl p-5">
+        <div className="flex items-center gap-5">
+          <ProgressRing value={pct} size={76} stroke={7}>
             <div className="text-center leading-tight">
-              <div className="text-lg font-extrabold">{Math.round(pct * 100)}%</div>
-              <div className="faint text-[10px] font-bold uppercase">heute</div>
+              <div className="text-[17px] font-semibold tabular-nums">{Math.round(pct * 100)}%</div>
             </div>
           </ProgressRing>
           <div className="min-w-0 flex-1">
-            <p className="text-[17px] font-bold leading-snug">{progressMessage(stats.done, stats.total)}</p>
-            <p className="muted mt-1 flex items-center gap-1.5 text-sm">
-              <Flame size={16} className="text-orange-500" />
-              {stats.streak > 0 ? (
-                <span>
-                  <b>{stats.streak}</b> {stats.streak === 1 ? "Tag" : "Tage"} in Folge produktiv
-                </span>
-              ) : (
-                <span>Starte heute deine Serie!</span>
-              )}
-            </p>
+            <p className="section-title mb-1">Heute</p>
+            <p className="text-[16px] font-semibold leading-snug">{progressMessage(stats.done, stats.total)}</p>
+            <div className="mt-2.5 flex flex-wrap gap-2">
+              <span className="badge">
+                <CircleCheckBig size={13} /> {stats.done} von {stats.total} erledigt
+              </span>
+              <span className="badge">
+                <Flame size={13} style={{ color: stats.streak ? "var(--warning)" : undefined }} />
+                {stats.streak} {stats.streak === 1 ? "Tag" : "Tage"} Serie
+              </span>
+            </div>
           </div>
         </div>
-        <blockquote className="mt-4 border-t pt-3 text-sm" style={{ borderColor: "var(--divider)" }}>
-          <p className="italic">„{quote.text}“</p>
-          <footer className="faint mt-1 text-xs font-semibold">— {quote.author}</footer>
+        <blockquote className="mt-4 border-t pt-3.5 text-sm" style={{ borderColor: "var(--border)" }}>
+          <p className="muted">„{quote.text}“</p>
+          <footer className="faint mt-1 text-xs font-medium">{quote.author}</footer>
         </blockquote>
       </section>
 
       {/* Quick actions */}
-      <div className="no-scrollbar -mx-4 mb-5 flex gap-2 overflow-x-auto px-4">
+      <div className="mb-6 grid grid-cols-2 gap-2 sm:grid-cols-4">
         {[
-          { href: "/journal?new=1", label: "Gedanke", icon: PenLine },
-          { href: "/todos?new=1", label: "Aufgabe", icon: CheckCircle2 },
-          { href: "/notes?new=1", label: "Notiz", icon: StickyNote },
-          { href: "/shopping", label: "Einkauf", icon: ShoppingBasket },
+          { href: "/journal?new=1", label: "Eintrag", icon: PenLine },
+          { href: "/todos?new=1", label: "Aufgabe", icon: ListTodo },
+          { href: "/notes?new=1", label: "Notiz", icon: NotebookPen },
+          { href: "/shopping", label: "Einkauf", icon: ShoppingCart },
         ].map(({ href, label, icon: Icon }) => (
-          <Link key={href} href={href} className="glass glass-pill glass-interactive flex flex-none items-center gap-2 py-2.5 pr-4 pl-3 text-sm font-semibold">
-            <span className="grid h-7 w-7 place-items-center rounded-full text-white" style={{ background: "linear-gradient(135deg, var(--accent), var(--accent-2))" }}>
-              <Plus size={15} strokeWidth={3} />
-            </span>
-            <Icon size={16} className="muted" /> {label}
+          <Link key={href} href={href} className="btn btn-ghost justify-start gap-2.5 px-3">
+            <Icon size={16} className="muted" />
+            <span className="flex-1 text-left">{label}</span>
+            <Plus size={15} className="faint" />
           </Link>
         ))}
       </div>
 
       <div className="grid gap-4 md:grid-cols-2">
-        {/* Todos */}
-        <Card href="/todos" title="Aufgaben" icon={<CheckCircle2 size={18} />} meta={stats.open ? `${stats.open} fällig` : undefined}>
+        <Card href="/todos" title="Aufgaben" icon={<CircleCheckBig size={17} />} meta={stats.open ? `${stats.open} fällig` : undefined}>
           <MiniTodos todos={upcoming} />
         </Card>
 
-        {/* Journal */}
-        <Card href="/journal" title="Tagebuch" icon={<BookHeart size={18} />}>
+        <Card href="/journal" title="Tagebuch" icon={<BookOpen size={17} />}>
           {todayEntry ? (
             <Link href={`/journal?open=${todayEntry.id}`} className="block">
-              <p className="text-sm font-semibold">
-                Heute {moodEmoji(todayEntry.mood)} {todayEntry.title}
+              <p className="flex items-center gap-1.5 text-sm font-semibold">
+                <MoodIcon mood={todayEntry.mood} size={16} /> {todayEntry.title || "Heute"}
               </p>
               <p className="muted line-clamp-3 text-sm">{todayEntry.content}</p>
             </Link>
           ) : (
             <div>
-              <p className="mb-2 text-sm font-semibold">Wie fühlst du dich heute?</p>
-              <div className="flex justify-between">
-                {MOODS.map((m) => (
-                  <Link
-                    key={m.value}
-                    href={`/journal?new=1&mood=${m.value}`}
-                    className="grid h-11 w-11 place-items-center rounded-full text-2xl transition hover:scale-125 active:scale-90"
-                    aria-label={m.label}
-                  >
-                    {m.emoji}
-                  </Link>
-                ))}
+              <p className="muted mb-2 text-sm">Wie fühlst du dich heute?</p>
+              <div className="flex gap-1.5">
+                {MOODS.map((m) => {
+                  const Icon = MOOD_STYLES[m.value].icon;
+                  return (
+                    <Link
+                      key={m.value}
+                      href={`/journal?new=1&mood=${m.value}`}
+                      className="grid h-10 flex-1 place-items-center rounded-lg border transition-colors hover:bg-[var(--surface-hover)]"
+                      style={{ borderColor: "var(--border)" }}
+                      aria-label={m.label}
+                      title={m.label}
+                    >
+                      <Icon size={20} style={{ color: MOOD_STYLES[m.value].color }} />
+                    </Link>
+                  );
+                })}
               </div>
             </div>
           )}
-          <div className="mt-3 flex items-center justify-between border-t pt-3" style={{ borderColor: "var(--divider)" }}>
-            <span className="faint text-xs font-semibold">Diese Woche</span>
-            <div className="flex gap-1.5">
+          <div className="mt-4 flex items-center justify-between border-t pt-3" style={{ borderColor: "var(--border)" }}>
+            <span className="faint text-xs font-medium">Letzte 7 Tage</span>
+            <div className="flex gap-1">
               {moods.map((d) => (
                 <span
                   key={d.date}
-                  className="grid h-7 w-7 place-items-center rounded-full text-sm"
-                  style={{ background: "var(--field-bg)" }}
+                  className="grid h-7 w-7 place-items-center rounded-md"
+                  style={{ background: "var(--surface-2)" }}
                   title={formatDate(parseLocalDate(d.date))}
                 >
-                  {d.mood ? moodEmoji(d.mood) : <span className="faint text-[10px]">{parseLocalDate(d.date).getDate()}</span>}
+                  {d.mood ? (
+                    <MoodIcon mood={d.mood} size={15} />
+                  ) : (
+                    <span className="faint text-[10px] tabular-nums">{parseLocalDate(d.date).getDate()}</span>
+                  )}
                 </span>
               ))}
             </div>
           </div>
         </Card>
 
-        {/* Notes */}
-        <Card href="/notes" title="Notizen" icon={<StickyNote size={18} />}>
+        <Card href="/notes" title="Notizen" icon={<NotebookPen size={17} />}>
           {pinned.length === 0 ? (
-            <p className="muted py-2 text-sm">Noch keine Notizen.</p>
+            <p className="muted py-1 text-sm">Noch keine Notizen.</p>
           ) : (
-            <div className="space-y-2">
+            <div className="divide-soft -mx-1">
               {pinned.map((n) => (
-                <Link
-                  key={n.id}
-                  href={`/notes?open=${n.id}`}
-                  className={`block rounded-2xl p-3 ${n.color !== "default" ? `glass tint-${n.color}` : ""}`}
-                  style={n.color === "default" ? { background: "var(--field-bg)" } : undefined}
-                >
-                  <p className="truncate text-sm font-bold">{n.title || n.content.split("\n")[0] || "Bild-Notiz"}</p>
-                  {n.title && n.content && <p className="muted truncate text-xs">{n.content.split("\n")[0]}</p>}
+                <Link key={n.id} href={`/notes?open=${n.id}`} className="flex items-center gap-2.5 px-1 py-2">
+                  <span
+                    className="h-2 w-2 flex-none rounded-full"
+                    style={{ background: n.color === "default" ? "var(--text-3)" : `var(--note-${n.color}, var(--accent))` }}
+                  />
+                  <span className="min-w-0 flex-1">
+                    <span className="block truncate text-sm font-medium">{n.title || n.content.split("\n")[0] || "Bild-Notiz"}</span>
+                    {n.title && n.content && <span className="muted block truncate text-xs">{n.content.split("\n")[0]}</span>}
+                  </span>
                 </Link>
               ))}
             </div>
           )}
         </Card>
 
-        {/* Shopping */}
-        <Card href="/shopping" title="Einkauf" icon={<ShoppingBasket size={18} />} meta={shopping.length ? `${shopping.length} offen` : undefined}>
+        <Card href="/shopping" title="Einkauf" icon={<ShoppingCart size={17} />} meta={shopping.length ? `${shopping.length} offen` : undefined}>
           <MiniShopping items={shopping} />
         </Card>
       </div>
@@ -175,17 +196,12 @@ function Card({
   children: React.ReactNode;
 }) {
   return (
-    <section className="glass animate-pop rounded-[28px] p-4">
-      <Link href={href} className="mb-3 flex items-center gap-2">
-        <span
-          className="grid h-8 w-8 place-items-center rounded-xl text-white shadow-md"
-          style={{ background: "linear-gradient(135deg, var(--accent), var(--accent-2))" }}
-        >
-          {icon}
-        </span>
-        <h2 className="flex-1 font-bold">{title}</h2>
-        {meta && <span className="muted text-xs font-semibold">{meta}</span>}
-        <ChevronRight size={18} className="faint" />
+    <section className="glass animate-pop rounded-xl p-4">
+      <Link href={href} className="group mb-3 flex items-center gap-2.5">
+        <span className="icon-tile">{icon}</span>
+        <h2 className="flex-1 text-[15px] font-semibold">{title}</h2>
+        {meta && <span className="faint text-xs font-medium">{meta}</span>}
+        <ChevronRight size={16} className="faint transition-transform group-hover:translate-x-0.5" />
       </Link>
       {children}
     </section>

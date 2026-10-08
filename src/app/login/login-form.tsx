@@ -12,7 +12,7 @@ export function LoginForm({ next }: { next: string }) {
       <input
         type="password"
         name="password"
-        className="field text-center"
+        className="field"
         placeholder="Passwort"
         autoComplete="current-password"
         autoFocus
@@ -20,7 +20,7 @@ export function LoginForm({ next }: { next: string }) {
       />
       {state.error && <p className="text-sm font-semibold text-[var(--danger)]">{state.error}</p>}
       <button type="submit" className="btn btn-primary w-full" disabled={pending}>
-        <LogIn size={18} /> {pending ? "Einen Moment…" : "Anmelden"}
+        <LogIn size={17} /> {pending ? "Einen Moment…" : "Anmelden"}
       </button>
     </form>
   );

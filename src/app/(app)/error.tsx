@@ -1,16 +1,20 @@
 "use client";
 
+import { TriangleAlert } from "lucide-react";
+import { EmptyState } from "@/components/empty-state";
+
 export default function Error({ error, reset }: { error: Error & { digest?: string }; reset: () => void }) {
   return (
     <div className="page">
-      <div className="glass rounded-[28px] p-8 text-center">
-        <div className="mb-3 text-5xl">😵‍💫</div>
-        <h1 className="text-xl font-extrabold">Da ist etwas schiefgelaufen</h1>
-        <p className="muted mt-2 text-sm">{error.digest ? `Fehler-ID: ${error.digest}` : "Bitte versuche es erneut."}</p>
-        <button type="button" className="btn btn-primary mt-6" onClick={reset}>
+      <EmptyState
+        icon={TriangleAlert}
+        title="Da ist etwas schiefgelaufen"
+        text={error.digest ? `Fehler-ID: ${error.digest}` : "Bitte versuche es erneut."}
+      >
+        <button type="button" className="btn btn-primary" onClick={reset}>
           Erneut versuchen
         </button>
-      </div>
+      </EmptyState>
     </div>
   );
 }

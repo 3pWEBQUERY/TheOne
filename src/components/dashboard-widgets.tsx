@@ -2,13 +2,14 @@
 
 import Link from "next/link";
 import { useOptimistic, useTransition } from "react";
-import { Bell, Check } from "lucide-react";
+import { Bell } from "lucide-react";
+import { CategoryIcon } from "./icons";
 import type { ShoppingItem, Todo } from "@/db/schema";
 import { toggleTodo } from "@/lib/actions/todos";
 import { toggleShoppingItem } from "@/lib/actions/shopping";
 import { relativeDue } from "@/lib/dates";
 import { randomCheer } from "@/lib/motivation";
-import { confetti, haptic } from "./confetti";
+import { haptic } from "./confetti";
 import { useToast } from "./toast";
 import { useRefreshOnFocus } from "./hooks";
 
@@ -24,20 +25,19 @@ export function MiniTodos({ todos }: { todos: Todo[] }) {
   const now = new Date();
 
   if (list.length === 0) {
-    return <p className="muted py-2 text-sm">Keine offenen Aufgaben – stark! 🎉</p>;
+    return <p className="muted py-1 text-sm">Keine offenen Aufgaben.</p>;
   }
   return (
-    <ul className="space-y-1">
+    <ul className="divide-soft">
       {list.map((t) => (
-        <li key={t.id} className="flex items-center gap-3 py-1.5">
+        <li key={t.id} className="flex items-center gap-3 py-2">
           <button
             type="button"
-            className="check !h-6 !w-6"
+            className="check"
             data-priority={t.priority}
             aria-label="Erledigen"
-            onClick={(e) => {
+            onClick={() => {
               haptic([10, 30, 20]);
-              confetti(e.clientX, e.clientY, 35);
               toast(randomCheer(), "success");
               start(async () => {
                 remove(t.id);
@@ -46,7 +46,7 @@ export function MiniTodos({ todos }: { todos: Todo[] }) {
             }}
           />
           <Link href={`/todos?open=${t.id}`} className="min-w-0 flex-1">
-            <p className="truncate text-[15px] font-semibold">{t.title}</p>
+            <p className="truncate text-sm font-medium">{t.title}</p>
             {t.dueAt && (
               <p className={`flex items-center gap-1 text-xs ${t.dueAt < now ? "font-semibold text-[var(--danger)]" : "muted"}`}>
                 {relativeDue(t.dueAt, now)}
@@ -63,14 +63,14 @@ export function MiniTodos({ todos }: { todos: Todo[] }) {
 export function MiniShopping({ items }: { items: ShoppingItem[] }) {
   const [, start] = useTransition();
   const [list, remove] = useOptimistic(items, (s, id: string) => s.filter((t) => t.id !== id));
-  if (list.length === 0) return <p className="muted py-2 text-sm">Die Liste ist leer.</p>;
+  if (list.length === 0) return <p className="muted py-1 text-sm">Die Liste ist leer.</p>;
   return (
     <div className="flex flex-wrap gap-1.5">
       {list.slice(0, 10).map((i) => (
         <button
           key={i.id}
           type="button"
-          className="chip !min-h-8"
+          className="chip"
           onClick={() => {
             haptic(10);
             start(async () => {
@@ -80,11 +80,11 @@ export function MiniShopping({ items }: { items: ShoppingItem[] }) {
           }}
           title="Abhaken"
         >
-          <Check size={13} className="faint" />
-          {i.quantity && <b>{i.quantity}</b>} {i.name}
+          <CategoryIcon id={i.category} size={14} className="faint" />
+          {i.quantity && <span className="faint">{i.quantity}</span>} {i.name}
         </button>
       ))}
-      {list.length > 10 && <span className="chip !min-h-8 muted">+{list.length - 10}</span>}
+      {list.length > 10 && <span className="chip muted">+{list.length - 10}</span>}
     </div>
   );
 }

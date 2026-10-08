@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useState, useTransition } from "react";
-import { Bell, BellOff, Download, LogOut, Send, Share } from "lucide-react";
+import { Bell, BellOff, BookOpen, Download, LogOut, Palette, Send, Share, Sun } from "lucide-react";
+import { ThemeSwitch } from "./theme";
 import { saveNotificationSettings, sendTestPush } from "@/lib/actions/push";
 import { logout } from "@/lib/actions/auth";
 import type { NotificationSettings } from "@/lib/settings";
@@ -45,10 +46,18 @@ export function SettingsPanel({ initial }: { initial: NotificationSettings }) {
 
   return (
     <div className="space-y-4">
+      <section className="glass rounded-xl p-5">
+        <h2 className="mb-1 flex items-center gap-2 text-[15px] font-semibold">
+          <Palette size={17} /> Darstellung
+        </h2>
+        <p className="muted mb-3 text-sm">Hell, dunkel oder automatisch wie dein Gerät.</p>
+        <ThemeSwitch />
+      </section>
+
       {!env.standalone && (
-        <section className="glass rounded-[28px] p-5">
-          <h2 className="mb-1 flex items-center gap-2 font-bold">
-            <Download size={18} /> App installieren
+        <section className="glass rounded-xl p-5">
+          <h2 className="mb-1 flex items-center gap-2 text-[15px] font-semibold">
+            <Download size={17} /> App installieren
           </h2>
           {installEvt ? (
             <>
@@ -75,9 +84,9 @@ export function SettingsPanel({ initial }: { initial: NotificationSettings }) {
         </section>
       )}
 
-      <section className="glass rounded-[28px] p-5">
-        <h2 className="mb-1 flex items-center gap-2 font-bold">
-          <Bell size={18} /> Push-Benachrichtigungen
+      <section className="glass rounded-xl p-5">
+        <h2 className="mb-1 flex items-center gap-2 text-[15px] font-semibold">
+          <Bell size={17} /> Push-Benachrichtigungen
         </h2>
         <p className="muted mb-4 text-sm">Erinnerungen für Aufgaben, Motivation am Morgen und ein sanfter Tagebuch-Impuls am Abend.</p>
 
@@ -90,7 +99,7 @@ export function SettingsPanel({ initial }: { initial: NotificationSettings }) {
               onClick={() =>
                 start(async () => {
                   const r = await sendTestPush();
-                  toast(r.sent ? "Test gesendet 🚀" : "Kein Gerät erreicht", r.sent ? "success" : "error");
+                  toast(r.sent ? "Test gesendet" : "Kein Gerät erreicht", r.sent ? "success" : "error");
                 })
               }
             >
@@ -117,7 +126,7 @@ export function SettingsPanel({ initial }: { initial: NotificationSettings }) {
               const r = await enablePush(vapidPublicKey);
               if (r.ok) {
                 setSubscribed(true);
-                toast("Benachrichtigungen aktiviert 🔔", "success");
+                toast("Benachrichtigungen aktiviert", "success");
               } else toast(r.error ?? "Fehler", "error");
             }}
           >
@@ -128,9 +137,10 @@ export function SettingsPanel({ initial }: { initial: NotificationSettings }) {
           <p className="faint mt-2 text-xs">Auf iPhone/iPad funktionieren Push-Nachrichten nur in der installierten App.</p>
         )}
 
-        <div className="mt-5 space-y-3 border-t pt-4" style={{ borderColor: "var(--divider)" }}>
+        <div className="mt-5 space-y-3 border-t pt-4" style={{ borderColor: "var(--border)" }}>
           <ToggleRow
-            label="☀️ Tages-Motivation"
+            icon={Sun}
+            label="Tages-Motivation"
             hint="Deine Aufgaben für heute + Zitat des Tages"
             checked={cfg.dailyDigest}
             onChange={(v) => update({ dailyDigest: v })}
@@ -139,7 +149,8 @@ export function SettingsPanel({ initial }: { initial: NotificationSettings }) {
             hours={hours}
           />
           <ToggleRow
-            label="📔 Tagebuch-Erinnerung"
+            icon={BookOpen}
+            label="Tagebuch-Erinnerung"
             hint="Nur wenn du heute noch nichts geschrieben hast"
             checked={cfg.journalReminder}
             onChange={(v) => update({ journalReminder: v })}
@@ -150,7 +161,7 @@ export function SettingsPanel({ initial }: { initial: NotificationSettings }) {
         </div>
       </section>
 
-      <section className="glass rounded-[28px] p-5">
+      <section className="glass rounded-xl p-5">
         <button
           type="button"
           className="btn btn-ghost w-full"
@@ -171,6 +182,7 @@ export function SettingsPanel({ initial }: { initial: NotificationSettings }) {
 }
 
 function ToggleRow({
+  icon: Icon,
   label,
   hint,
   checked,
@@ -179,6 +191,7 @@ function ToggleRow({
   onHour,
   hours,
 }: {
+  icon: typeof Sun;
   label: string;
   hint: string;
   checked: boolean;
@@ -189,12 +202,13 @@ function ToggleRow({
 }) {
   return (
     <div className="flex items-center gap-3">
+      <Icon size={18} className="muted flex-none" />
       <div className="min-w-0 flex-1">
-        <p className="font-semibold">{label}</p>
+        <p className="text-sm font-medium">{label}</p>
         <p className="muted text-xs">{hint}</p>
       </div>
       <select
-        className="field !w-auto !rounded-full !py-2 !pr-3 !pl-3 text-sm"
+        className="field !w-auto !py-1.5 !pl-2.5 text-sm"
         value={hour}
         onChange={(e) => onHour(Number(e.target.value))}
         disabled={!checked}
@@ -211,12 +225,12 @@ function ToggleRow({
         role="switch"
         aria-checked={checked}
         onClick={() => onChange(!checked)}
-        className="relative h-[31px] w-[51px] flex-none rounded-full transition-colors"
-        style={{ background: checked ? "var(--success)" : "var(--field-border)" }}
+        className="relative h-6 w-10 flex-none rounded-full transition-colors"
+        style={{ background: checked ? "var(--accent)" : "var(--border-strong)" }}
       >
         <span
-          className="absolute top-[2px] h-[27px] w-[27px] rounded-full bg-white shadow-md transition-all"
-          style={{ left: checked ? 22 : 2 }}
+          className="absolute top-0.5 h-5 w-5 rounded-full bg-white shadow transition-all"
+          style={{ left: checked ? 18 : 2 }}
         />
       </button>
     </div>

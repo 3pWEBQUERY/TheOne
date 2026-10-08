@@ -28,14 +28,12 @@ export function quoteOfTheDay(date = new Date()) {
 }
 
 export const CHEERS = [
-  "Stark! 💪",
-  "Erledigt – weiter so! 🚀",
-  "Super gemacht! ✨",
-  "Ein Punkt weniger auf der Liste! 🎯",
-  "Du rockst das! 🔥",
-  "Läuft bei dir! 🌟",
-  "Großartig! 🙌",
-  "Wieder ein Schritt nach vorn! 👣",
+  "Erledigt. Weiter so!",
+  "Gut gemacht.",
+  "Ein Punkt weniger auf der Liste.",
+  "Stark – dranbleiben!",
+  "Wieder ein Schritt nach vorn.",
+  "Sauber erledigt.",
 ];
 
 export function randomCheer() {
@@ -43,23 +41,23 @@ export function randomCheer() {
 }
 
 export function progressMessage(done: number, total: number) {
-  if (total === 0) return done > 0 ? "Alles erledigt für heute – genieß den Tag! 🌴" : "Plane deinen Tag – was steht an?";
+  if (total === 0) return done > 0 ? "Alles erledigt für heute." : "Plane deinen Tag – was steht an?";
   const pct = done / total;
-  if (pct >= 1) return "Alles erledigt! Du bist unaufhaltsam! 🏆";
-  if (pct >= 0.75) return "Fast geschafft – der Endspurt! 🏁";
-  if (pct >= 0.5) return "Mehr als die Hälfte – stark! 💫";
-  if (pct > 0) return "Guter Start – bleib dran! 🌱";
-  return "Der erste Haken ist der wichtigste. Los geht's! ⚡";
+  if (pct >= 1) return "Alles erledigt. Starke Leistung!";
+  if (pct >= 0.75) return "Fast geschafft – noch ein kleiner Endspurt.";
+  if (pct >= 0.5) return "Mehr als die Hälfte ist geschafft.";
+  if (pct > 0) return "Guter Start – bleib dran.";
+  return "Der erste Haken ist der wichtigste.";
 }
 
 export const MOODS = [
-  { value: 1, emoji: "😞", label: "Schlecht" },
-  { value: 2, emoji: "😕", label: "Mäßig" },
-  { value: 3, emoji: "😐", label: "Okay" },
-  { value: 4, emoji: "🙂", label: "Gut" },
-  { value: 5, emoji: "😄", label: "Super" },
+  { value: 1, label: "Schlecht" },
+  { value: 2, label: "Mäßig" },
+  { value: 3, label: "Okay" },
+  { value: 4, label: "Gut" },
+  { value: 5, label: "Super" },
 ] as const;
 
-export function moodEmoji(mood: number | null | undefined) {
-  return MOODS.find((m) => m.value === mood)?.emoji ?? "";
+export function moodLabel(mood: number | null | undefined) {
+  return MOODS.find((m) => m.value === mood)?.label ?? "";
 }

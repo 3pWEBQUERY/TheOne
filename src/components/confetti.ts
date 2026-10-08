@@ -1,6 +1,6 @@
 "use client";
 
-const COLORS = ["#6d5dfc", "#22b8f0", "#ff7ac6", "#4ee6b0", "#ffc25c", "#ffffff"];
+const COLORS = ["#2563eb", "#60a5fa", "#93c5fd", "#22c55e", "#f59e0b", "#94a3b8"];
 
 export function haptic(pattern: number | number[] = 12) {
   try {

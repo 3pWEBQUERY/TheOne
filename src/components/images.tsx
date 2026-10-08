@@ -79,13 +79,13 @@ export function ImagePicker({
   return (
     <div className="flex flex-wrap gap-2">
       {value.map((img, i) => (
-        <div key={img.key} className="relative h-20 w-20 overflow-hidden rounded-2xl shadow-sm">
+        <div key={img.key} className="relative h-20 w-20 overflow-hidden rounded-lg border" style={{ borderColor: "var(--border)" }}>
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src={imgSrc(img.thumb)} alt="" className="h-full w-full object-cover" />
           <button
             type="button"
             onClick={() => onChange(value.filter((_, j) => j !== i))}
-            className="absolute top-1 right-1 grid h-6 w-6 place-items-center rounded-full bg-black/55 text-white backdrop-blur"
+            className="absolute top-1 right-1 grid h-6 w-6 place-items-center rounded-md bg-black/60 text-white"
             aria-label="Bild entfernen"
           >
             <X size={14} />
@@ -93,7 +93,7 @@ export function ImagePicker({
         </div>
       ))}
       {pending.map((p) => (
-        <div key={p.id} className="relative h-20 w-20 overflow-hidden rounded-2xl">
+        <div key={p.id} className="relative h-20 w-20 overflow-hidden rounded-lg">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src={p.preview} alt="" className="h-full w-full object-cover opacity-50" />
           <div className="absolute inset-0 grid place-items-center">
@@ -107,10 +107,10 @@ export function ImagePicker({
       <button
         type="button"
         onClick={() => input.current?.click()}
-        className={`grid place-items-center rounded-2xl border border-dashed transition active:scale-95 ${
+        className={`grid place-items-center rounded-lg border border-dashed transition-colors hover:bg-[var(--surface-hover)] ${
           compact ? "h-11 w-11" : "h-20 w-20"
         }`}
-        style={{ borderColor: "color-mix(in srgb, var(--text) 25%, transparent)", background: "var(--field-bg)" }}
+        style={{ borderColor: "var(--border-strong)", background: "var(--surface-solid)" }}
         aria-label="Bild hinzufügen"
       >
         <span className="flex flex-col items-center gap-1 text-[11px] font-medium muted">
@@ -144,13 +144,12 @@ export function ImageStrip({ images, size = 64, max = 4 }: { images: ImageRef[];
             key={img.key}
             type="button"
             onClick={() => setOpen(i)}
-            className="relative overflow-hidden rounded-xl shadow-sm transition active:scale-95"
-            style={{ width: size, height: size }}
+            className="relative overflow-hidden rounded-md border transition active:scale-95" style={{ width: size, height: size, borderColor: "var(--border)" }}
           >
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img src={imgSrc(img.thumb)} alt="" loading="lazy" className="h-full w-full object-cover" />
             {i === shown.length - 1 && rest > 0 && (
-              <span className="absolute inset-0 grid place-items-center bg-black/45 text-sm font-bold text-white">
+              <span className="absolute inset-0 grid place-items-center bg-black/45 text-sm font-semibold text-white">
                 +{rest}
               </span>
             )}
@@ -181,7 +180,7 @@ export function ImageCover({ images, className = "" }: { images: ImageRef[]; cla
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img src={imgSrc(img.thumb)} alt="" loading="lazy" className="h-full w-full object-cover" />
         {images.length > 1 && (
-          <span className="glass-pill absolute right-2 bottom-2 px-2.5 py-1 text-xs font-bold">
+          <span className="absolute right-2 bottom-2 rounded-md bg-black/60 px-2 py-0.5 text-xs font-semibold text-white">
             +{images.length - 1}
           </span>
         )}
@@ -230,12 +229,12 @@ export function Lightbox({ images, index, onClose }: { images: ImageRef[]; index
         key={img.key}
         src={imgSrc(img.key)}
         alt=""
-        className="animate-pop max-h-[88dvh] max-w-[94vw] rounded-2xl object-contain shadow-2xl"
+        className="animate-pop max-h-[88dvh] max-w-[94vw] rounded-lg object-contain shadow-2xl"
         onClick={(e) => e.stopPropagation()}
       />
       <button
         type="button"
-        className="glass-pill absolute right-4 grid h-11 w-11 place-items-center text-white"
+        className="absolute rounded-lg border border-white/15 bg-white/10 backdrop-blur-md right-4 grid h-11 w-11 place-items-center text-white"
         style={{ top: "calc(var(--safe-t) + 1rem)" }}
         onClick={onClose}
         aria-label="Schließen"
@@ -246,7 +245,7 @@ export function Lightbox({ images, index, onClose }: { images: ImageRef[]; index
         <>
           <button
             type="button"
-            className="glass-pill absolute left-3 hidden h-12 w-12 place-items-center text-white md:grid"
+            className="absolute rounded-lg border border-white/15 bg-white/10 backdrop-blur-md left-3 hidden h-12 w-12 place-items-center text-white md:grid"
             onClick={(e) => {
               e.stopPropagation();
               prev();
@@ -257,7 +256,7 @@ export function Lightbox({ images, index, onClose }: { images: ImageRef[]; index
           </button>
           <button
             type="button"
-            className="glass-pill absolute right-3 hidden h-12 w-12 place-items-center text-white md:grid"
+            className="absolute rounded-lg border border-white/15 bg-white/10 backdrop-blur-md right-3 hidden h-12 w-12 place-items-center text-white md:grid"
             onClick={(e) => {
               e.stopPropagation();
               next();
@@ -267,7 +266,7 @@ export function Lightbox({ images, index, onClose }: { images: ImageRef[]; index
             <ChevronRight />
           </button>
           <div
-            className="glass-pill absolute left-1/2 -translate-x-1/2 px-3 py-1.5 text-sm font-semibold text-white"
+            className="absolute rounded-lg border border-white/15 bg-white/10 backdrop-blur-md left-1/2 -translate-x-1/2 px-3 py-1.5 text-sm font-semibold text-white"
             style={{ bottom: "calc(var(--safe-b) + 1.25rem)" }}
           >
             {i + 1} / {images.length}

@@ -1,5 +1,5 @@
 /* TheOne service worker – offline cache + push notifications */
-const VERSION = "theone-v1";
+const VERSION = "theone-v2";
 const STATIC_CACHE = `${VERSION}-static`;
 const PAGE_CACHE = `${VERSION}-pages`;
 const IMAGE_CACHE = `${VERSION}-images`;

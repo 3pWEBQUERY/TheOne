@@ -1,7 +1,9 @@
 "use client";
 
 import { useEffect, useMemo, useOptimistic, useRef, useState, useTransition } from "react";
-import { ArrowUp, Camera, Check, PartyPopper, Plus, RotateCcw, Trash2 } from "lucide-react";
+import { ArrowUp, Camera, Check, CircleCheckBig, Plus, RotateCcw, ShoppingCart, Trash2 } from "lucide-react";
+import { CategoryIcon } from "../icons";
+import { EmptyState } from "../empty-state";
 import type { ImageRef, ShoppingItem } from "@/db/schema";
 import {
   addShoppingItems,
@@ -10,7 +12,7 @@ import {
   toggleShoppingItem,
   updateShoppingItem,
 } from "@/lib/actions/shopping";
-import { CATEGORIES, CATEGORY_MAP, detectCategory, parseItemInput } from "@/lib/categories";
+import { CATEGORIES, detectCategory, parseItemInput } from "@/lib/categories";
 import { ImagePicker, ImageStrip } from "../images";
 import { ConfirmButton, Sheet } from "../sheet";
 import { useToast } from "../toast";
@@ -119,8 +121,8 @@ export function ShoppingBoard({
     const next = !item.checked;
     haptic(next ? 12 : 6);
     if (next && open.length === 1) {
-      setTimeout(() => confetti(window.innerWidth / 2, window.innerHeight / 3, 120), 150);
-      toast("Alles im Wagen! 🎉", "success");
+      setTimeout(() => confetti(window.innerWidth / 2, window.innerHeight / 3, 80), 150);
+      toast("Alles im Wagen.", "success");
     }
     startTransition(async () => {
       apply({ type: "toggle", id: item.id, checked: next });
@@ -131,8 +133,7 @@ export function ShoppingBoard({
   const finish = () =>
     startTransition(async () => {
       const r = await finishShopping();
-      confetti(window.innerWidth / 2, window.innerHeight / 2, 100);
-      toast(`Einkauf abgeschlossen – ${r.count} Artikel ✓`, "success");
+      toast(`Einkauf abgeschlossen – ${r.count} Artikel`, "success");
     });
 
   const pct = total ? inCart.length / total : 0;
@@ -141,31 +142,31 @@ export function ShoppingBoard({
     <div className="page">
       <header className="mb-4 flex items-end justify-between gap-3">
         <div>
-          <p className="muted text-sm font-semibold">
+          <p className="muted text-sm font-medium">
             {open.length === 0 ? "Nichts mehr zu holen" : `${open.length} Artikel offen`}
           </p>
           <h1 className="page-title">Einkauf</h1>
         </div>
         {total > 0 && (
           <div className="text-right">
-            <p className="text-2xl font-extrabold">{Math.round(pct * 100)}%</p>
-            <p className="muted text-xs font-semibold">im Wagen</p>
+            <p className="text-xl font-semibold tabular-nums">{Math.round(pct * 100)}%</p>
+            <p className="faint text-xs font-medium">im Wagen</p>
           </div>
         )}
       </header>
 
       {total > 0 && (
-        <div className="mb-4 h-2.5 overflow-hidden rounded-full" style={{ background: "var(--field-border)" }}>
+        <div className="mb-4 h-1.5 overflow-hidden rounded-full" style={{ background: "var(--surface-2)" }}>
           <div
             className="h-full rounded-full transition-all duration-700"
-            style={{ width: `${pct * 100}%`, background: "linear-gradient(90deg, var(--accent), var(--accent-2))" }}
+            style={{ width: `${pct * 100}%`, background: "var(--accent)" }}
           />
         </div>
       )}
 
       {/* Add bar */}
       <form onSubmit={submit} className="relative z-10 mb-4">
-        <div className="glass-strong rounded-[26px] p-1.5">
+        <div className="glass rounded-xl p-1">
           <div className="flex items-center gap-1.5">
             <button
               type="button"
@@ -190,7 +191,7 @@ export function ShoppingBoard({
             />
             <button
               type="submit"
-              className="btn btn-primary !h-11 !min-h-11 !w-11 flex-none !p-0"
+              className="btn btn-primary !h-9 !min-h-9 !w-9 flex-none !p-0"
               disabled={!value.trim() || busy}
               aria-label="Hinzufügen"
             >
@@ -205,19 +206,19 @@ export function ShoppingBoard({
           )}
         </div>
         {focused && autocomplete.length > 0 && (
-          <div className="glass-strong absolute inset-x-2 top-full mt-2 overflow-hidden rounded-2xl">
+          <div className="absolute inset-x-0 top-full mt-1.5 overflow-hidden rounded-xl border shadow-[var(--shadow-lg)]" style={{ background: "var(--surface-solid)", borderColor: "var(--border)" }}>
             {autocomplete.map((s) => (
               <button
                 key={s.name}
                 type="button"
-                className="flex w-full items-center gap-3 px-4 py-3 text-left transition hover:bg-white/10"
+                className="flex w-full items-center gap-3 px-3.5 py-2.5 text-left text-sm transition-colors hover:bg-[var(--surface-hover)]"
                 onMouseDown={(e) => e.preventDefault()}
                 onClick={() => {
                   add(s.name);
                   setValue("");
                 }}
               >
-                <span>{CATEGORY_MAP[s.category]?.emoji ?? "🛍️"}</span>
+                <CategoryIcon id={s.category} className="faint" />
                 <span className="flex-1 font-medium">{s.name}</span>
                 <span className="faint text-xs">{s.times}× gekauft</span>
               </button>
@@ -232,8 +233,8 @@ export function ShoppingBoard({
           <h2 className="section-title mb-2 px-1">Schnell hinzufügen</h2>
           <div className="no-scrollbar -mx-4 flex gap-2 overflow-x-auto px-4 pb-1">
             {suggestions.slice(0, 16).map((s) => (
-              <button key={s.name} type="button" className="chip glass flex-none" onClick={() => add(s.name)}>
-                <span>{CATEGORY_MAP[s.category]?.emoji ?? "🛍️"}</span>
+              <button key={s.name} type="button" className="chip flex-none" onClick={() => add(s.name)}>
+                <CategoryIcon id={s.category} size={14} className="faint" />
                 {s.name}
                 <Plus size={14} className="faint" />
               </button>
@@ -243,23 +244,20 @@ export function ShoppingBoard({
       )}
 
       {total === 0 && (
-        <div className="glass rounded-[28px] p-8 text-center">
-          <div className="mb-2 text-5xl">🛒</div>
-          <p className="text-lg font-bold">Die Liste ist leer</p>
-          <p className="muted mt-1 text-sm">
-            Tippe oben, was du brauchst. Mehrere Artikel einfach mit Komma trennen – sie werden automatisch nach
-            Kategorien sortiert.
-          </p>
-        </div>
+        <EmptyState
+          icon={ShoppingCart}
+          title="Die Liste ist leer"
+          text="Tippe oben, was du brauchst. Mehrere Artikel mit Komma trennen – sie werden automatisch nach Kategorien sortiert."
+        />
       )}
 
       <div className="space-y-4">
         {grouped.map(({ cat, items: catItems }) => (
           <section key={cat.id}>
             <h2 className="section-title mb-2 flex items-center gap-1.5 px-1">
-              <span className="text-base">{cat.emoji}</span> {cat.label}
+              <CategoryIcon id={cat.id} size={14} /> {cat.label}
             </h2>
-            <ul className="glass divide-y overflow-hidden rounded-[24px]" style={{ borderColor: "var(--divider)" }}>
+            <ul className="glass divide-soft overflow-hidden rounded-xl">
               {catItems.map((i) => (
                 <ItemRow key={i.id} item={i} onToggle={() => toggle(i)} onOpen={() => !i.id.startsWith("temp-") && setEditing(i)} />
               ))}
@@ -272,13 +270,13 @@ export function ShoppingBoard({
             <div className="mb-2 flex items-center justify-between px-1">
               <h2 className="section-title">Im Wagen · {inCart.length}</h2>
             </div>
-            <ul className="glass divide-y overflow-hidden rounded-[24px] opacity-75" style={{ borderColor: "var(--divider)" }}>
+            <ul className="glass divide-soft overflow-hidden rounded-xl">
               {inCart.map((i) => (
                 <ItemRow key={i.id} item={i} onToggle={() => toggle(i)} onOpen={() => setEditing(i)} />
               ))}
             </ul>
             <button type="button" className="btn btn-primary mt-3 w-full" onClick={finish}>
-              <PartyPopper size={18} /> Einkauf abschließen
+              <CircleCheckBig size={17} /> Einkauf abschließen
             </button>
             <p className="faint mt-2 text-center text-xs">
               Abgehakte Artikel wandern in deinen Verlauf und erscheinen als Vorschläge.
@@ -294,9 +292,9 @@ export function ShoppingBoard({
 
 function ItemRow({ item: i, onToggle, onOpen }: { item: ShoppingItem; onToggle: () => void; onOpen: () => void }) {
   return (
-    <li className="flex items-center gap-3 px-4 py-3" style={{ borderColor: "var(--divider)" }}>
+    <li className="flex items-center gap-3 px-4 py-2.5 transition-colors hover:bg-[var(--surface-hover)]">
       <button type="button" className="check" data-checked={i.checked} onClick={onToggle} aria-label={i.checked ? "Zurücklegen" : "In den Wagen"}>
-        {i.checked && <Check size={15} color="white" strokeWidth={3.5} />}
+        {i.checked && <Check size={13} color="white" strokeWidth={3.5} />}
       </button>
       <div
         role="button"
@@ -306,10 +304,10 @@ function ItemRow({ item: i, onToggle, onOpen }: { item: ShoppingItem; onToggle: 
         className="flex min-w-0 flex-1 cursor-pointer items-center gap-3"
       >
         <div className="min-w-0 flex-1">
-          <p className={`font-semibold ${i.checked ? "faint line-through" : ""}`}>{i.name}</p>
+          <p className={`text-[15px] font-medium ${i.checked ? "faint line-through" : ""}`}>{i.name}</p>
           {i.note && <p className="muted truncate text-[13px]">{i.note}</p>}
         </div>
-        {i.quantity && <span className="chip !min-h-7 flex-none !px-2.5 text-xs font-bold">{i.quantity}</span>}
+        {i.quantity && <span className="badge flex-none tabular-nums">{i.quantity}</span>}
         {i.images.length > 0 && <ImageStrip images={i.images} size={40} max={1} />}
       </div>
     </li>
@@ -368,7 +366,7 @@ function ItemEditor({ item, onClose }: { item: ShoppingItem; onClose: () => void
           <div className="flex flex-wrap gap-2">
             {CATEGORIES.map((c) => (
               <button key={c.id} type="button" className="chip" data-active={category === c.id} onClick={() => setCategory(c.id)}>
-                {c.emoji} {c.label}
+                <CategoryIcon id={c.id} size={14} /> {c.label}
               </button>
             ))}
           </div>

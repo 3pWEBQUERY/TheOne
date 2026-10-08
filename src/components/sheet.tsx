@@ -59,13 +59,13 @@ export function Sheet({ open, onClose, title, actions, children, footer, wide }:
 
   return createPortal(
     <div className="fixed inset-0 z-[70] flex items-end justify-center md:items-center md:p-6" role="dialog" aria-modal>
-      <div className="sheet-backdrop absolute inset-0 bg-black/35 backdrop-blur-[2px]" onClick={onClose} />
+      <div className="sheet-backdrop absolute inset-0 bg-black/40" onClick={onClose} />
       <div
         ref={panel}
-        className={`sheet-panel glass-strong relative flex max-h-[92dvh] w-full flex-col rounded-t-[32px] md:rounded-[32px] ${
+        className={`sheet-panel relative border shadow-[var(--shadow-lg)] flex max-h-[92dvh] w-full flex-col rounded-t-2xl md:rounded-2xl ${
           wide ? "md:max-w-2xl" : "md:max-w-lg"
         }`}
-        style={{ transition: "transform 0.2s ease" }}
+        style={{ transition: "transform 0.2s ease", background: "var(--surface-solid)", borderColor: "var(--border)" }}
       >
         <div
           className="flex cursor-grab touch-none justify-center pt-2.5 pb-1 md:hidden"
@@ -76,7 +76,7 @@ export function Sheet({ open, onClose, title, actions, children, footer, wide }:
           <div className="h-1.5 w-10 rounded-full bg-current opacity-20" />
         </div>
         <div className="flex items-center gap-2 px-5 pt-2 pb-3 md:pt-5">
-          <h2 className="min-w-0 flex-1 truncate text-lg font-bold">{title}</h2>
+          <h2 className="min-w-0 flex-1 truncate text-[17px] font-semibold">{title}</h2>
           {actions}
           <button type="button" className="icon-btn -mr-2" onClick={onClose} aria-label="Schließen">
             <X size={20} />
@@ -86,7 +86,7 @@ export function Sheet({ open, onClose, title, actions, children, footer, wide }:
         {footer && (
           <div
             className="flex gap-3 border-t px-5 pt-3"
-            style={{ borderColor: "var(--divider)", paddingBottom: "calc(var(--safe-b) + 0.9rem)" }}
+            style={{ borderColor: "var(--border)", paddingBottom: "calc(var(--safe-b) + 0.9rem)" }}
           >
             {footer}
           </div>
