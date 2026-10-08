@@ -1,15 +1,16 @@
 "use client";
 
 import { useEffect, useMemo, useState, useTransition } from "react";
-import { Check, ListChecks, NotebookPen, Pin, PinOff, Plus, Search, ShoppingCart, Trash2 } from "lucide-react";
+import { Check, ListChecks, NotebookPen, Pencil, Pin, PinOff, Plus, Search, ShoppingCart, Trash2 } from "lucide-react";
+import { formatDate, formatTime } from "@/lib/dates";
 import { EmptyState } from "../empty-state";
 import type { ImageRef, Note } from "@/db/schema";
 import { deleteNote, noteToShopping, noteToTodos, saveNote, toggleNotePin } from "@/lib/actions/notes";
 import { NOTE_COLORS } from "@/lib/note-colors";
-import { ImageCover, ImagePicker } from "../images";
+import { ImageCover, ImageGrid, ImagePicker } from "../images";
 import { ConfirmButton, Sheet } from "../sheet";
 import { useToast } from "../toast";
-import { autoGrow, clearUrlParams, useRefreshOnFocus } from "../hooks";
+import { autoGrow, canAutoFocus, clearUrlParams, useRefreshOnFocus } from "../hooks";
 
 const tint = (color: string) => (color === "default" ? "" : `tint-${color}`);
 
@@ -24,11 +25,12 @@ export function NotesBoard({
 }) {
   useRefreshOnFocus();
   const [query, setQuery] = useState("");
-  const [editing, setEditing] = useState<Note | "new" | null>(() => {
+  const [editing, setEditing] = useState<string | null>(() => {
     if (startNew) return "new";
-    if (initialOpenId) return notes.find((n) => n.id === initialOpenId) ?? null;
+    if (initialOpenId && notes.some((n) => n.id === initialOpenId)) return initialOpenId;
     return null;
   });
+  const editingNote = editing && editing !== "new" ? notes.find((n) => n.id === editing) : undefined;
 
   useEffect(() => {
     if (startNew || initialOpenId) clearUrlParams();
@@ -79,7 +81,7 @@ export function NotesBoard({
           </h2>
           <div className="flex flex-col gap-3">
             {pinned.map((n) => (
-              <NoteCard key={n.id} note={n} onOpen={() => setEditing(n)} />
+              <NoteCard key={n.id} note={n} onOpen={() => setEditing(n.id)} />
             ))}
           </div>
         </section>
@@ -90,13 +92,15 @@ export function NotesBoard({
           {pinned.length > 0 && <h2 className="section-title mb-2 px-1">Weitere</h2>}
           <div className="flex flex-col gap-3">
             {others.map((n) => (
-              <NoteCard key={n.id} note={n} onOpen={() => setEditing(n)} />
+              <NoteCard key={n.id} note={n} onOpen={() => setEditing(n.id)} />
             ))}
           </div>
         </section>
       )}
 
-      {editing && <NoteEditor note={editing === "new" ? null : editing} onClose={() => setEditing(null)} />}
+      {(editing === "new" || editingNote) && (
+        <NoteEditor key={editing} note={editingNote ?? null} onClose={() => setEditing(null)} />
+      )}
     </div>
   );
 }
@@ -126,76 +130,47 @@ function NoteCard({ note: n, onOpen }: { note: Note; onOpen: () => void }) {
   );
 }
 
+const NOTE_FORM = "note-form";
+
+/** Read-only view first; "Bearbeiten" switches to the form. */
 function NoteEditor({ note, onClose }: { note: Note | null; onClose: () => void }) {
   const toast = useToast();
+  const [mode, setMode] = useState<"view" | "edit">(note ? "view" : "edit");
   const [pending, startTransition] = useTransition();
   const [busy, setBusy] = useState(false);
-  const [title, setTitle] = useState(note?.title ?? "");
-  const [content, setContent] = useState(note?.content ?? "");
-  const [color, setColor] = useState(note?.color ?? "default");
-  const [pinned, setPinned] = useState(note?.pinned ?? false);
-  const [images, setImages] = useState<ImageRef[]>(note?.images ?? []);
 
-  const dirty =
-    !note ||
-    title !== note.title ||
-    content !== note.content ||
-    color !== note.color ||
-    pinned !== note.pinned ||
-    JSON.stringify(images) !== JSON.stringify(note.images);
+  if (mode === "view" && note) {
+    const convert = (kind: "shopping" | "todos") =>
+      startTransition(async () => {
+        const res = kind === "shopping" ? await noteToShopping(note.id) : await noteToTodos(note.id);
+        if (res.error) toast(res.error, "error");
+        else
+          toast(
+            kind === "shopping" ? `${res.count} Artikel zur Einkaufsliste hinzugefügt` : `${res.count} Aufgaben erstellt`,
+            "success",
+          );
+      });
 
-  const save = (after?: () => Promise<void>) =>
-    startTransition(async () => {
-      if (dirty) {
-        const res = await saveNote({ id: note?.id, title, content, color, pinned, images });
-        if (res.error) {
-          toast(res.error, "error");
-          return;
+    return (
+      <Sheet
+        open
+        wide
+        onClose={onClose}
+        title="Notiz"
+        actions={
+          <button
+            type="button"
+            className="icon-btn"
+            onClick={() => startTransition(async () => void (await toggleNotePin(note.id, !note.pinned)))}
+            aria-label={note.pinned ? "Lösen" : "Anheften"}
+            title={note.pinned ? "Lösen" : "Anheften"}
+            style={note.pinned ? { color: "var(--accent)" } : undefined}
+          >
+            {note.pinned ? <PinOff size={19} /> : <Pin size={19} />}
+          </button>
         }
-      }
-      if (after) await after();
-      else toast(note ? "Gespeichert" : "Notiz erstellt", "success");
-      onClose();
-    });
-
-  const convert = (kind: "shopping" | "todos") => {
-    if (!note) return;
-    save(async () => {
-      const res = kind === "shopping" ? await noteToShopping(note.id) : await noteToTodos(note.id);
-      if (res.error) toast(res.error, "error");
-      else
-        toast(
-          kind === "shopping"
-            ? `${res.count} Artikel zur Einkaufsliste hinzugefügt`
-            : `${res.count} Aufgaben erstellt`,
-          "success",
-        );
-    });
-  };
-
-  return (
-    <Sheet
-      open
-      wide
-      onClose={onClose}
-      title={note ? "Notiz" : "Neue Notiz"}
-      actions={
-        <button
-          type="button"
-          className="icon-btn"
-          onClick={() => {
-            setPinned((p) => !p);
-            if (note) startTransition(async () => void (await toggleNotePin(note.id, !pinned)));
-          }}
-          aria-label={pinned ? "Lösen" : "Anheften"}
-          style={pinned ? { color: "var(--accent)" } : undefined}
-        >
-          {pinned ? <PinOff size={20} /> : <Pin size={20} />}
-        </button>
-      }
-      footer={
-        <>
-          {note && (
+        footer={
+          <>
             <ConfirmButton
               className="btn btn-ghost !px-3.5"
               onConfirm={() =>
@@ -206,78 +181,167 @@ function NoteEditor({ note, onClose }: { note: Note | null; onClose: () => void 
                 })
               }
             >
-              <Trash2 size={18} />
+              <Trash2 size={17} />
             </ConfirmButton>
+            <button key="edit" type="button" className="btn btn-primary flex-1" onClick={() => setMode("edit")} disabled={pending}>
+              <Pencil size={16} /> Bearbeiten
+            </button>
+          </>
+        }
+      >
+        <div className="space-y-4">
+          <div className="flex items-start gap-2.5">
+            {note.color !== "default" && (
+              <span className="mt-2 h-2.5 w-2.5 flex-none rounded-full" style={{ background: `var(--note-${note.color})` }} />
+            )}
+            <div className="min-w-0 flex-1">
+              {note.title && <h3 className="text-xl font-semibold leading-snug">{note.title}</h3>}
+              <p className="faint mt-0.5 text-xs">
+                Zuletzt bearbeitet am {formatDate(note.updatedAt)}, {formatTime(note.updatedAt)} Uhr
+              </p>
+            </div>
+          </div>
+          {note.content && <p className="text-[15px] leading-relaxed whitespace-pre-wrap">{note.content}</p>}
+          <ImageGrid images={note.images} />
+
+          {note.content.trim() && (
+            <div className="border-t pt-4" style={{ borderColor: "var(--border)" }}>
+              <span className="label">Umwandeln</span>
+              <div className="grid grid-cols-2 gap-2">
+                <button type="button" className="btn btn-ghost" onClick={() => convert("todos")} disabled={pending}>
+                  <ListChecks size={17} /> In Aufgaben
+                </button>
+                <button type="button" className="btn btn-ghost" onClick={() => convert("shopping")} disabled={pending}>
+                  <ShoppingCart size={17} /> In Einkauf
+                </button>
+              </div>
+              <p className="faint mt-1.5 text-xs">Jede Zeile der Notiz wird zu einem eigenen Eintrag.</p>
+            </div>
           )}
-          <button type="button" className="btn btn-primary flex-1" onClick={() => save()} disabled={pending || busy}>
+        </div>
+      </Sheet>
+    );
+  }
+
+  return (
+    <Sheet
+      open
+      wide
+      onClose={onClose}
+      title={note ? "Notiz bearbeiten" : "Neue Notiz"}
+      footer={
+        <>
+          {note && (
+            <button key="cancel" type="button" className="btn btn-ghost" onClick={() => setMode("view")}>
+              Abbrechen
+            </button>
+          )}
+          <button key="save" type="submit" form={NOTE_FORM} className="btn btn-primary flex-1" disabled={pending || busy}>
             {busy ? "Bilder werden hochgeladen…" : "Speichern"}
           </button>
         </>
       }
     >
-      <div className="space-y-4">
-        <input
-          className="field !text-[17px] font-semibold"
-          placeholder="Titel"
-          value={title}
-          onChange={(e) => setTitle(e.target.value)}
-        />
-        <textarea
-          ref={autoGrow}
-          className="field min-h-[220px]"
-          placeholder="Notiz schreiben… (jede Zeile kann später zur Aufgabe oder zum Einkauf werden)"
-          value={content}
-          onChange={(e) => {
-            setContent(e.target.value);
-            autoGrow(e.target);
-          }}
-          autoFocus={!note}
-        />
-
-        <div>
-          <span className="label">Farbe</span>
-          <div className="flex gap-2.5">
-            {NOTE_COLORS.map((c) => (
-              <button
-                key={c.id}
-                type="button"
-                onClick={() => setColor(c.id)}
-                className="grid h-9 w-9 place-items-center rounded-full border transition-transform active:scale-95"
-                style={{
-                  background: c.id === "default" ? "var(--surface-solid)" : `var(--note-${c.id})`,
-                  borderColor: c.id === "default" ? "var(--border-strong)" : "transparent",
-                  boxShadow: color === c.id ? "0 0 0 2px var(--surface-solid), 0 0 0 4px var(--accent)" : "none",
-                }}
-                aria-label={c.label}
-                aria-pressed={color === c.id}
-                title={c.label}
-              >
-                {color === c.id && <Check size={16} color={c.id === "default" ? "var(--text)" : "#fff"} strokeWidth={3} />}
-              </button>
-            ))}
-          </div>
-        </div>
-
-        <div>
-          <span className="label">Bilder</span>
-          <ImagePicker value={images} onChange={setImages} onBusyChange={setBusy} />
-        </div>
-
-        {note && (
-          <div>
-            <span className="label">Umwandeln</span>
-            <div className="grid grid-cols-2 gap-2">
-              <button type="button" className="btn btn-ghost" onClick={() => convert("todos")} disabled={pending}>
-                <ListChecks size={17} /> In Aufgaben
-              </button>
-              <button type="button" className="btn btn-ghost" onClick={() => convert("shopping")} disabled={pending}>
-                <ShoppingCart size={17} /> In Einkauf
-              </button>
-            </div>
-            <p className="faint mt-1.5 text-xs">Jede Zeile der Notiz wird zu einem eigenen Eintrag.</p>
-          </div>
-        )}
-      </div>
+      <NoteForm
+        note={note}
+        onBusyChange={setBusy}
+        onSubmit={(input) =>
+          startTransition(async () => {
+            const res = await saveNote({ id: note?.id, ...input });
+            if (res.error) {
+              toast(res.error, "error");
+              return;
+            }
+            toast(note ? "Gespeichert" : "Notiz erstellt", "success");
+            if (note) setMode("view");
+            else onClose();
+          })
+        }
+      />
     </Sheet>
+  );
+}
+
+function NoteForm({
+  note,
+  onSubmit,
+  onBusyChange,
+}: {
+  note: Note | null;
+  onSubmit: (input: { title: string; content: string; color: string; pinned: boolean; images: ImageRef[] }) => void;
+  onBusyChange: (busy: boolean) => void;
+}) {
+  const [title, setTitle] = useState(note?.title ?? "");
+  const [content, setContent] = useState(note?.content ?? "");
+  const [color, setColor] = useState(note?.color ?? "default");
+  const [pinned, setPinned] = useState(note?.pinned ?? false);
+  const [images, setImages] = useState<ImageRef[]>(note?.images ?? []);
+
+  return (
+    <form
+      id={NOTE_FORM}
+      className="space-y-4"
+      onSubmit={(e) => {
+        e.preventDefault();
+        onSubmit({ title, content, color, pinned, images });
+      }}
+    >
+      <input
+        className="field !text-[17px] font-semibold"
+        placeholder="Titel"
+        value={title}
+        onChange={(e) => setTitle(e.target.value)}
+      />
+      <textarea
+        ref={autoGrow}
+        className="field min-h-[220px]"
+        placeholder="Notiz schreiben… (jede Zeile kann später zur Aufgabe oder zum Einkauf werden)"
+        value={content}
+        onChange={(e) => {
+          setContent(e.target.value);
+          autoGrow(e.target);
+        }}
+        autoFocus={!note && canAutoFocus()}
+      />
+
+      <div>
+        <span className="label">Farbe</span>
+        <div className="flex gap-2.5">
+          {NOTE_COLORS.map((c) => (
+            <button
+              key={c.id}
+              type="button"
+              onClick={() => setColor(c.id)}
+              className="grid h-9 w-9 place-items-center rounded-full border transition-transform active:scale-95"
+              style={{
+                background: c.id === "default" ? "var(--surface-solid)" : `var(--note-${c.id})`,
+                borderColor: c.id === "default" ? "var(--border-strong)" : "transparent",
+                boxShadow: color === c.id ? "0 0 0 2px var(--surface-solid), 0 0 0 4px var(--accent)" : "none",
+              }}
+              aria-label={c.label}
+              aria-pressed={color === c.id}
+              title={c.label}
+            >
+              {color === c.id && <Check size={16} color={c.id === "default" ? "var(--text)" : "#fff"} strokeWidth={3} />}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <label className="flex items-center gap-2.5 text-sm font-medium">
+        <input
+          type="checkbox"
+          checked={pinned}
+          onChange={(e) => setPinned(e.target.checked)}
+          className="h-4 w-4 accent-[var(--accent)]"
+        />
+        <Pin size={15} className="muted" /> Oben anheften
+      </label>
+
+      <div>
+        <span className="label">Bilder</span>
+        <ImagePicker value={images} onChange={setImages} onBusyChange={onBusyChange} />
+      </div>
+    </form>
   );
 }

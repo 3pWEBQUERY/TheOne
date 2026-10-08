@@ -277,3 +277,45 @@ export function Lightbox({ images, index, onClose }: { images: ImageRef[]; index
     document.body,
   );
 }
+
+/** Read-only gallery for detail views. */
+export function ImageGrid({ images }: { images: ImageRef[] }) {
+  const [open, setOpen] = useState<number | null>(null);
+  if (!images?.length) return null;
+  if (images.length === 1) {
+    const img = images[0];
+    return (
+      <>
+        <button
+          type="button"
+          onClick={() => setOpen(0)}
+          className="block w-full overflow-hidden rounded-lg border"
+          style={{ borderColor: "var(--border)" }}
+        >
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src={imgSrc(img.key)} alt="" className="max-h-80 w-full object-cover" />
+        </button>
+        {open !== null && <Lightbox images={images} index={open} onClose={() => setOpen(null)} />}
+      </>
+    );
+  }
+  return (
+    <>
+      <div className="grid grid-cols-3 gap-1.5">
+        {images.map((img, i) => (
+          <button
+            key={img.key}
+            type="button"
+            onClick={() => setOpen(i)}
+            className="aspect-square overflow-hidden rounded-lg border"
+            style={{ borderColor: "var(--border)" }}
+          >
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src={imgSrc(img.thumb)} alt="" loading="lazy" className="h-full w-full object-cover" />
+          </button>
+        ))}
+      </div>
+      {open !== null && <Lightbox images={images} index={open} onClose={() => setOpen(null)} />}
+    </>
+  );
+}

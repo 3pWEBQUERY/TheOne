@@ -28,7 +28,6 @@ export default async function SearchPage(props: PageProps<"/search">) {
         <input
           name="q"
           defaultValue={q}
-          autoFocus={!q}
           placeholder="Tagebuch, Aufgaben, Notizen, Einkauf…"
           className="min-w-0 flex-1 bg-transparent py-2.5 outline-none placeholder:text-[var(--text-3)]"
           enterKeyHint="search"

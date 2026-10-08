@@ -42,3 +42,8 @@ export function autoGrow(el: HTMLTextAreaElement | null) {
 const pad = (n: number) => String(n).padStart(2, "0");
 export const localDate = (d: Date) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
 export const localTime = (d: Date) => `${pad(d.getHours())}:${pad(d.getMinutes())}`;
+
+/** Only auto-focus on devices with a real keyboard – on phones it pops the keyboard and shifts the view. */
+export function canAutoFocus() {
+  return typeof window !== "undefined" && window.matchMedia("(hover: hover) and (pointer: fine)").matches;
+}

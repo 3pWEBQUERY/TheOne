@@ -43,11 +43,13 @@ export function TodoBoard({
   const [, startTransition] = useTransition();
   const [filter, setFilter] = useState<Filter>("all");
   const [showDone, setShowDone] = useState(false);
-  const [editing, setEditing] = useState<Todo | "new" | null>(() => {
+  // Track the open item by id so the sheet always shows fresh server data.
+  const [editing, setEditing] = useState<string | null>(() => {
     if (startNew) return "new";
-    if (initialOpenId) return [...open, ...done].find((t) => t.id === initialOpenId) ?? null;
+    if (initialOpenId && [...open, ...done].some((t) => t.id === initialOpenId)) return initialOpenId;
     return null;
   });
+  const editingTodo = editing && editing !== "new" ? [...open, ...done].find((t) => t.id === editing) : undefined;
 
   const [optimistic, setOptimistic] = useOptimistic(
     { open, done },
@@ -181,7 +183,7 @@ export function TodoBoard({
               </h2>
               <ul className="glass divide-soft overflow-hidden rounded-xl">
                 {s.items.map((t) => (
-                  <TodoRow key={t.id} todo={t} onToggle={onToggle} onOpen={() => setEditing(t)} now={now} />
+                  <TodoRow key={t.id} todo={t} onToggle={onToggle} onOpen={() => setEditing(t.id)} now={now} />
                 ))}
               </ul>
             </section>
@@ -212,7 +214,7 @@ export function TodoBoard({
             {showDone && (
               <ul className="glass divide-soft overflow-hidden rounded-xl">
                 {optimistic.done.map((t) => (
-                  <TodoRow key={t.id} todo={t} onToggle={onToggle} onOpen={() => setEditing(t)} now={now} />
+                  <TodoRow key={t.id} todo={t} onToggle={onToggle} onOpen={() => setEditing(t.id)} now={now} />
                 ))}
               </ul>
             )}
@@ -220,8 +222,8 @@ export function TodoBoard({
         )}
       </div>
 
-      {editing && (
-        <TodoEditor todo={editing === "new" ? null : editing} onClose={() => setEditing(null)} />
+      {(editing === "new" || editingTodo) && (
+        <TodoEditor key={editing} todo={editingTodo ?? null} onClose={() => setEditing(null)} />
       )}
     </div>
   );

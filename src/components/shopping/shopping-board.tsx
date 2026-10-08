@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useOptimistic, useRef, useState, useTransition } from "react";
-import { ArrowUp, Camera, Check, CircleCheckBig, Plus, RotateCcw, ShoppingCart, Trash2 } from "lucide-react";
+import { ArrowUp, Camera, Check, CircleCheckBig, Pencil, Plus, RotateCcw, ShoppingCart, Trash2 } from "lucide-react";
 import { CategoryIcon } from "../icons";
 import { EmptyState } from "../empty-state";
 import type { ImageRef, ShoppingItem } from "@/db/schema";
@@ -13,7 +13,7 @@ import {
   updateShoppingItem,
 } from "@/lib/actions/shopping";
 import { CATEGORIES, detectCategory, parseItemInput } from "@/lib/categories";
-import { ImagePicker, ImageStrip } from "../images";
+import { ImageGrid, ImagePicker, ImageStrip } from "../images";
 import { ConfirmButton, Sheet } from "../sheet";
 import { useToast } from "../toast";
 import { confetti, haptic } from "../confetti";
@@ -43,9 +43,10 @@ export function ShoppingBoard({
   const [showAttach, setShowAttach] = useState(false);
   const [busy, setBusy] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
-  const [editing, setEditing] = useState<ShoppingItem | null>(
-    () => (initialOpenId && items.find((i) => i.id === initialOpenId)) || null,
+  const [editing, setEditing] = useState<string | null>(() =>
+    initialOpenId && items.some((i) => i.id === initialOpenId) ? initialOpenId : null,
   );
+  const editingItem = editing ? items.find((i) => i.id === editing) : undefined;
 
   useEffect(() => {
     if (initialOpenId) clearUrlParams();
@@ -259,7 +260,7 @@ export function ShoppingBoard({
             </h2>
             <ul className="glass divide-soft overflow-hidden rounded-xl">
               {catItems.map((i) => (
-                <ItemRow key={i.id} item={i} onToggle={() => toggle(i)} onOpen={() => !i.id.startsWith("temp-") && setEditing(i)} />
+                <ItemRow key={i.id} item={i} onToggle={() => toggle(i)} onOpen={() => !i.id.startsWith("temp-") && setEditing(i.id)} />
               ))}
             </ul>
           </section>
@@ -272,7 +273,7 @@ export function ShoppingBoard({
             </div>
             <ul className="glass divide-soft overflow-hidden rounded-xl">
               {inCart.map((i) => (
-                <ItemRow key={i.id} item={i} onToggle={() => toggle(i)} onOpen={() => setEditing(i)} />
+                <ItemRow key={i.id} item={i} onToggle={() => toggle(i)} onOpen={() => setEditing(i.id)} />
               ))}
             </ul>
             <button type="button" className="btn btn-primary mt-3 w-full" onClick={finish}>
@@ -285,7 +286,7 @@ export function ShoppingBoard({
         )}
       </div>
 
-      {editing && <ItemEditor item={editing} onClose={() => setEditing(null)} />}
+      {editingItem && <ItemEditor key={editingItem.id} item={editingItem} onClose={() => setEditing(null)} />}
     </div>
   );
 }
@@ -314,96 +315,170 @@ function ItemRow({ item: i, onToggle, onOpen }: { item: ShoppingItem; onToggle: 
   );
 }
 
+const ITEM_FORM = "shopping-item-form";
+
+/** Read-only view first; "Bearbeiten" switches to the form. */
 function ItemEditor({ item, onClose }: { item: ShoppingItem; onClose: () => void }) {
   const toast = useToast();
+  const [mode, setMode] = useState<"view" | "edit">("view");
   const [pending, startTransition] = useTransition();
   const [busy, setBusy] = useState(false);
+  const category = CATEGORIES.find((c) => c.id === item.category) ?? CATEGORIES[CATEGORIES.length - 1];
+
+  if (mode === "view") {
+    return (
+      <Sheet
+        open
+        onClose={onClose}
+        title="Artikel"
+        footer={
+          <>
+            <ConfirmButton
+              className="btn btn-ghost !px-3.5"
+              confirmText="Entfernen?"
+              onConfirm={() =>
+                startTransition(async () => {
+                  await deleteShoppingItem(item.id);
+                  onClose();
+                })
+              }
+            >
+              <Trash2 size={17} />
+            </ConfirmButton>
+            <button key="edit" type="button" className="btn btn-primary flex-1" onClick={() => setMode("edit")} disabled={pending}>
+              <Pencil size={16} /> Bearbeiten
+            </button>
+          </>
+        }
+      >
+        <div className="space-y-4">
+          <div>
+            <h3 className={`text-xl font-semibold leading-snug ${item.checked ? "faint line-through" : ""}`}>
+              {item.name}
+            </h3>
+            <div className="mt-2 flex flex-wrap gap-2">
+              <span className="badge">
+                <CategoryIcon id={category.id} size={13} /> {category.label}
+              </span>
+              {item.quantity && <span className="badge tabular-nums">Menge: {item.quantity}</span>}
+              {item.checked && (
+                <span className="badge" style={{ color: "var(--success)" }}>
+                  <Check size={13} /> Im Wagen
+                </span>
+              )}
+            </div>
+          </div>
+          {item.note && <p className="text-[15px] leading-relaxed whitespace-pre-wrap">{item.note}</p>}
+          <ImageGrid images={item.images} />
+          <button
+            type="button"
+            className="btn btn-ghost w-full"
+            disabled={pending}
+            style={item.checked ? undefined : { color: "var(--accent-text)", borderColor: "var(--accent)" }}
+            onClick={() =>
+              startTransition(async () => {
+                await toggleShoppingItem(item.id, !item.checked);
+                onClose();
+              })
+            }
+          >
+            {item.checked ? <RotateCcw size={16} /> : <Check size={16} />}
+            {item.checked ? "Zurück auf die Liste" : "In den Wagen legen"}
+          </button>
+        </div>
+      </Sheet>
+    );
+  }
+
+  return (
+    <Sheet
+      open
+      onClose={onClose}
+      title="Artikel bearbeiten"
+      footer={
+        <>
+          <button key="cancel" type="button" className="btn btn-ghost" onClick={() => setMode("view")}>
+            Abbrechen
+          </button>
+          <button key="save" type="submit" form={ITEM_FORM} className="btn btn-primary flex-1" disabled={pending || busy}>
+            {busy ? "Bilder werden hochgeladen…" : "Speichern"}
+          </button>
+        </>
+      }
+    >
+      <ItemForm
+        item={item}
+        onBusyChange={setBusy}
+        onSubmit={(input) =>
+          startTransition(async () => {
+            const res = await updateShoppingItem({ id: item.id, ...input });
+            if (res.error) toast(res.error, "error");
+            else {
+              toast("Gespeichert", "success");
+              setMode("view");
+            }
+          })
+        }
+      />
+    </Sheet>
+  );
+}
+
+function ItemForm({
+  item,
+  onSubmit,
+  onBusyChange,
+}: {
+  item: ShoppingItem;
+  onSubmit: (input: { name: string; quantity: string; category: string; note: string; images: ImageRef[] }) => void;
+  onBusyChange: (busy: boolean) => void;
+}) {
   const [name, setName] = useState(item.name);
   const [quantity, setQuantity] = useState(item.quantity);
   const [category, setCategory] = useState(item.category);
   const [note, setNote] = useState(item.note);
   const [images, setImages] = useState<ImageRef[]>(item.images);
 
-  const save = () =>
-    startTransition(async () => {
-      const res = await updateShoppingItem({ id: item.id, name, quantity, category, note, images });
-      if (res.error) toast(res.error, "error");
-      else onClose();
-    });
-
   return (
-    <Sheet
-      open
-      onClose={onClose}
-      title="Artikel"
-      footer={
-        <>
-          <ConfirmButton
-            className="btn btn-ghost !px-3.5"
-            confirmText="Entfernen?"
-            onConfirm={() =>
-              startTransition(async () => {
-                await deleteShoppingItem(item.id);
-                onClose();
-              })
-            }
-          >
-            <Trash2 size={18} />
-          </ConfirmButton>
-          <button type="button" className="btn btn-primary flex-1" onClick={save} disabled={pending || busy}>
-            {busy ? "Bilder werden hochgeladen…" : "Speichern"}
-          </button>
-        </>
-      }
+    <form
+      id={ITEM_FORM}
+      className="space-y-4"
+      onSubmit={(e) => {
+        e.preventDefault();
+        onSubmit({ name, quantity, category, note, images });
+      }}
     >
-      <div className="space-y-4">
-        <div className="grid grid-cols-[1fr_7rem] gap-2">
-          <input className="field font-semibold" value={name} onChange={(e) => setName(e.target.value)} placeholder="Name" />
-          <input className="field" value={quantity} onChange={(e) => setQuantity(e.target.value)} placeholder="Menge" />
-        </div>
-        <div>
-          <span className="label">Kategorie</span>
-          <div className="flex flex-wrap gap-2">
-            {CATEGORIES.map((c) => (
-              <button key={c.id} type="button" className="chip" data-active={category === c.id} onClick={() => setCategory(c.id)}>
-                <CategoryIcon id={c.id} size={14} /> {c.label}
-              </button>
-            ))}
-          </div>
-        </div>
-        <label className="block">
-          <span className="label">Notiz</span>
-          <textarea
-            ref={autoGrow}
-            className="field min-h-[70px]"
-            value={note}
-            onChange={(e) => {
-              setNote(e.target.value);
-              autoGrow(e.target);
-            }}
-            placeholder="Marke, Sorte, Laden…"
-          />
-        </label>
-        <div>
-          <span className="label">Fotos</span>
-          <ImagePicker value={images} onChange={setImages} onBusyChange={setBusy} />
-        </div>
-        {item.checked && (
-          <button
-            type="button"
-            className="btn btn-ghost w-full"
-            onClick={() =>
-              startTransition(async () => {
-                await toggleShoppingItem(item.id, false);
-                onClose();
-              })
-            }
-          >
-            <RotateCcw size={16} /> Zurück auf die Liste
-          </button>
-        )}
+      <div className="grid grid-cols-[1fr_7rem] gap-2">
+        <input className="field font-semibold" value={name} onChange={(e) => setName(e.target.value)} placeholder="Name" />
+        <input className="field" value={quantity} onChange={(e) => setQuantity(e.target.value)} placeholder="Menge" />
       </div>
-    </Sheet>
+      <div>
+        <span className="label">Kategorie</span>
+        <div className="flex flex-wrap gap-2">
+          {CATEGORIES.map((c) => (
+            <button key={c.id} type="button" className="chip" data-active={category === c.id} onClick={() => setCategory(c.id)}>
+              <CategoryIcon id={c.id} size={14} /> {c.label}
+            </button>
+          ))}
+        </div>
+      </div>
+      <label className="block">
+        <span className="label">Notiz</span>
+        <textarea
+          ref={autoGrow}
+          className="field min-h-[70px]"
+          value={note}
+          onChange={(e) => {
+            setNote(e.target.value);
+            autoGrow(e.target);
+          }}
+          placeholder="Marke, Sorte, Laden…"
+        />
+      </label>
+      <div>
+        <span className="label">Fotos</span>
+        <ImagePicker value={images} onChange={setImages} onBusyChange={onBusyChange} />
+      </div>
+    </form>
   );
 }
-
